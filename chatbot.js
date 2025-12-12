@@ -3,9 +3,10 @@ export const config = {
     bodyParser: true,
   },
 };
+
 export default function handler(req, res) {
   if (req.method === "POST") {
-    const { message } = req.body;
+    const message = req.body.message; // Aquí obtenemos el mensaje correctamente
 
     return res.status(200).json({
       reply: `Recibí tu mensaje: ${message}`
