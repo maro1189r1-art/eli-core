@@ -1,3 +1,11 @@
 export default function handler(req, res) {
-  res.status(200).json({ message: "Chatbot funcionando correctamente" });
+  if (req.method === "POST") {
+    const { message } = req.body;
+
+    return res.status(200).json({
+      reply: `Recibí tu mensaje: ${message}`
+    });
+  }
+
+  return res.status(405).json({ reply: "Método no permitido" });
 }
