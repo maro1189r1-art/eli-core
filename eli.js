@@ -1,31 +1,40 @@
-// ELI v1 - núcleo básico funcional
+// ELI v1 - núcleo básico estable
+// Preparado para evolución futura
 
-console.log("ELI conectado correctamente");
+document.addEventListener("DOMContentLoaded", function () {
+  console.log("ELI conectado correctamente");
 
-// Botón Enviar
-document.getElementById("sendBtn").addEventListener("click", function () {
+  const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
   const response = document.getElementById("response");
-  const input = inputElement.value;
 
-  if (input.trim() === "") {
-    response.textContent = "Escribe algo primero 🙂";
+  if (!sendBtn || !inputElement || !response) {
+    console.error("ELI error: elementos del DOM no encontrados");
     return;
   }
 
-  let reply = "";
-  const text = input.toLowerCase();
+  sendBtn.addEventListener("click", function () {
+    const input = inputElement.value.trim();
 
-  if (text.includes("hola")) {
-    reply = "Hola 👋 Soy ELI, ¿en qué te ayudo?";
-  } else if (text.includes("quien eres")) {
-    reply = "Soy ELI, un asistente en evolución creado por ti.";
-  } else {
-    reply = "Aún estoy aprendiendo, pero te escucho 🙂";
-  }
+    if (input === "") {
+      response.textContent = "Escribe algo primero 🙂";
+      return;
+    }
 
-  response.textContent = reply;
-  inputElement.value = ""; // limpia el input
+    const text = input.toLowerCase();
+    let reply = "";
+
+    if (text.includes("hola")) {
+      reply = "Hola 👋 Soy ELI, ¿en qué te ayudo?";
+    } else if (text.includes("quien eres")) {
+      reply = "Soy ELI, un asistente en evolución creado por ti.";
+    } else {
+      reply = "Aún estoy aprendiendo, pero te escucho 🙂";
+    }
+
+    response.textContent = reply;
+    inputElement.value = "";
+  });
 });
 
 // Abrir ChatGPT en una nueva ventana
