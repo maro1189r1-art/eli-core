@@ -29,3 +29,7 @@ response.textContent = reply;
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
+function openChat() {
+  window.open("https://chat.openai.com/", "_blank");
+}
+
