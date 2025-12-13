@@ -1,7 +1,6 @@
-// ELI v1 - núcleo básico estable
-// Preparado para evolución futura (modo manual)
+// ELI v1 - núcleo estable con lectura de configuración remota
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI conectado correctamente");
 
   const sendBtn = document.getElementById("sendBtn");
@@ -11,6 +10,18 @@ document.addEventListener("DOMContentLoaded", function () {
   if (!sendBtn || !inputElement || !response) {
     console.error("ELI error: elementos del DOM no encontrados");
     return;
+  }
+
+  // 🔹 Leer configuración remota
+  try {
+    const res = await fetch("eli-config.json");
+    const config = await res.json();
+
+    if (config.lastCommand) {
+      response.textContent = `📡 Orden remota recibida: "${config.lastCommand}"`;
+    }
+  } catch (err) {
+    console.warn("No se pudo leer eli-config.json");
   }
 
   function processInput() {
@@ -36,10 +47,8 @@ document.addEventListener("DOMContentLoaded", function () {
     inputElement.value = "";
   }
 
-  // Click en botón
   sendBtn.addEventListener("click", processInput);
 
-  // Enter desde teclado (PC o celular)
   inputElement.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
       processInput();
@@ -47,7 +56,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
-// Abrir ChatGPT en una nueva ventana
+// Abrir ChatGPT
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
