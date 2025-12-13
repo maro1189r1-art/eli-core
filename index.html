@@ -1,27 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <title>ELI v1 Base</title>
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <title>ELI v1 Base</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <h1>ELI v1.1 (Base)</h1>
-    <p>Tu asistente en evolución.</p>
 
-    <!-- Campo de texto -->
-    <input id="userInput" type="text" placeholder="Escribe aquí..." />
+  <h1>ELI v1.1 (Base)</h1>
+  <p>Tu asistente en evolución.</p>
 
-    <!-- Botón para enviar mensaje -->
-    <button onclick="sendMessage()">Enviar</button>
+  <!-- Campo de texto -->
+  <input
+    id="userInput"
+    type="text"
+    placeholder="Escribe aquí..."
+  />
 
-    <!-- Aquí se mostrará la respuesta -->
-    <p id="response"></p>
+  <!-- Botón para enviar mensaje -->
+  <button id="sendBtn">Enviar</button>
 
-    <!-- Botón para abrir ChatGPT -->
-    <button onclick="openChat()">Abrir Mente Central (ChatGPT)</button>
+  <!-- Aquí se mostrará la respuesta -->
+  <p id="response"></p>
 
-    <!-- Script -->
-    <script src="eli.js"></script>
+  <!-- Botón para abrir ChatGPT -->
+  <button onclick="openChat()">Abrir Mente Central (ChatGPT)</button>
+
+  <!-- Script -->
+  <script src="eli.js"></script>
+
 </body>
 </html>
