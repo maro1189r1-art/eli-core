@@ -1,19 +1,21 @@
-document.getElementById("eli-form").addEventListener("submit", async function (e) {
-  e.preventDefault();
+// ELI v1 - núcleo básico funcional
 
-  const userMessage = document.getElementById("eli-input").value;
+console.log("ELI conectado correctamente");
 
-  const response = await fetch("/api/chatbot", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      message: userMessage,
-    }),
-  });
+// Botón Enviar
+document.getElementById("sendBtn").addEventListener("click", function () {
+  const input = document.getElementById("userInput").value;
+  const response = document.getElementById("response");
 
-  const data = await response.json();
+  if (input.trim() === "") {
+    response.textContent = "Escribe algo primero 🙂";
+    return;
+  }
 
-  document.getElementById("eli-response").innerText = data.reply;
+  response.textContent = "ELI dice: " + input;
 });
+
+// Abrir ChatGPT
+function openChat() {
+  window.open("https://chat.openai.com/", "_blank");
+}
