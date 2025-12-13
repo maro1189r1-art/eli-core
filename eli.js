@@ -1,5 +1,5 @@
 // ELI v1 - núcleo básico estable
-// Preparado para evolución futura
+// Preparado para evolución futura (modo manual)
 
 document.addEventListener("DOMContentLoaded", function () {
   console.log("ELI conectado correctamente");
@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
-  sendBtn.addEventListener("click", function () {
+  function processInput() {
     const input = inputElement.value.trim();
 
     if (input === "") {
@@ -34,6 +34,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
     response.textContent = reply;
     inputElement.value = "";
+  }
+
+  // Click en botón
+  sendBtn.addEventListener("click", processInput);
+
+  // Enter desde teclado (PC o celular)
+  inputElement.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      processInput();
+    }
   });
 });
 
