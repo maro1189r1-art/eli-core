@@ -1,5 +1,5 @@
-// ELI v1.3 - núcleo estable con memoria controlada
-// Lee configuración externa y guarda memoria local
+// ELI v1.4 - núcleo estable con memoria y órdenes de mejora
+// Lee configuración externa, guarda memoria y mejoras pendientes
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -44,6 +44,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
   }
 
+  // Cargar mejoras pendientes
+  let eliImprovements = JSON.parse(
+    localStorage.getItem("eli_improvements") || "[]"
+  );
+
   sendBtn.addEventListener("click", function () {
     const input = inputElement.value.trim();
 
@@ -55,13 +60,40 @@ document.addEventListener("DOMContentLoaded", async function () {
     const text = input.toLowerCase();
     let reply = eliConfig.responses?.default || "Te escucho 🙂";
 
-    // Comando especial: memoria
+    // 🔹 Comando: ver memoria
     if (text.includes("memoria") && eliConfig.memory?.enabled) {
       reply = eliConfig.memory.lastMessage
         ? `Recuerdo que dijiste: "${eliConfig.memory.lastMessage}"`
         : "Aún no tengo nada en memoria.";
-    } else {
-      // Buscar respuestas configuradas
+    }
+
+    // 🔹 Comando: agregar mejora
+    else if (text.startsWith("mejora:")) {
+      const improvement = input.substring(7).trim();
+      if (improvement) {
+        eliImprovements.push(improvement);
+        localStorage.setItem(
+          "eli_improvements",
+          JSON.stringify(eliImprovements)
+        );
+        reply = "✅ Mejora registrada. La tendré en cuenta.";
+      } else {
+        reply = "Escribe la mejora después de 'mejora:'.";
+      }
+    }
+
+    // 🔹 Comando: listar mejoras
+    else if (text === "mejoras") {
+      if (eliImprovements.length === 0) {
+        reply = "No tengo mejoras pendientes aún.";
+      } else {
+        reply =
+          "📌 Mejoras pendientes:\n- " + eliImprovements.join("\n- ");
+      }
+    }
+
+    // 🔹 Respuestas normales
+    else {
       if (eliConfig.responses) {
         for (const key in eliConfig.responses) {
           if (text.includes(key)) {
@@ -72,7 +104,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    // Guardar memoria (siempre)
+    // Guardar memoria siempre
     if (eliConfig.memory?.enabled) {
       localStorage.setItem("eli_last_message", input);
       eliConfig.memory.lastMessage = input;
