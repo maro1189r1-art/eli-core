@@ -1,5 +1,5 @@
-// ELI v1.1 - núcleo con configuración externa
-// Lee eli-config.json para comportamiento dinámico
+// ELI v1.2 - núcleo estable con control de estado
+// Evolución segura sin romper el funcionamiento actual
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -13,19 +13,21 @@ document.addEventListener("DOMContentLoaded", async function () {
     return;
   }
 
-  // Configuración por defecto (seguridad)
+  // Configuración por defecto (modo seguro)
   let eliConfig = {
     mode: "manual",
+    allowEvolution: false,
     responses: {
       default: "ELI activo, pero sin configuración externa."
     }
   };
 
-  // Intentar cargar eli-config.json
+  // Cargar eli-config.json
   try {
     const res = await fetch("./eli-config.json");
     if (res.ok) {
-      eliConfig = await res.json();
+      const externalConfig = await res.json();
+      eliConfig = { ...eliConfig, ...externalConfig };
       console.log("ELI config cargada:", eliConfig);
     } else {
       console.warn("ELI: no se pudo cargar eli-config.json");
@@ -42,9 +44,19 @@ document.addEventListener("DOMContentLoaded", async function () {
       return;
     }
 
+    // 🔍 Comando de estado
+    if (input === "estado") {
+      response.textContent =
+        `ELI modo: ${eliConfig.mode} | evolución: ` +
+        (eliConfig.allowEvolution ? "habilitada" : "bloqueada");
+      inputElement.value = "";
+      return;
+    }
+
+    // Respuesta por defecto
     let reply = eliConfig.responses?.default || "Te escucho 🙂";
 
-    // Buscar coincidencias en responses
+    // Coincidencias configurables
     if (eliConfig.responses) {
       for (const key in eliConfig.responses) {
         if (input.includes(key)) {
