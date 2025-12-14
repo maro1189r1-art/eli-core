@@ -1,4 +1,4 @@
-// ELI v1.2 - núcleo estable con comandos
+// ELI v1.3 - núcleo administrable desde chat
 // Controlado por eli-config.json
 
 document.addEventListener("DOMContentLoaded", async function () {
@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     mode: "manual",
     allowEvolution: false,
     responses: {
+      hola: "Hola 👋 Soy ELI",
       default: "ELI activo."
     }
   };
@@ -34,15 +35,15 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   sendBtn.addEventListener("click", function () {
-    const inputRaw = inputElement.value.trim();
-    const input = inputRaw.toLowerCase();
+    const raw = inputElement.value.trim();
+    const input = raw.toLowerCase();
 
     if (input === "") {
       response.textContent = "Escribe algo primero 🙂";
       return;
     }
 
-    // 🔐 COMANDOS ESPECIALES
+    // 🔐 COMANDOS ADMIN
     if (input === "/estado") {
       response.textContent =
         `Modo: ${eliConfig.mode} | Evolución: ${eliConfig.allowEvolution ? "ACTIVA" : "BLOQUEADA"}`;
@@ -50,10 +51,28 @@ document.addEventListener("DOMContentLoaded", async function () {
       return;
     }
 
-    if (input === "/evolucion") {
-      response.textContent = eliConfig.allowEvolution
-        ? "Evolución permitida 🔓 (lista para futuro)"
-        : "Evolución bloqueada 🔒";
+    if (input.startsWith("/setmodo ")) {
+      const nuevoModo = input.replace("/setmodo ", "");
+      eliConfig.mode = nuevoModo;
+      response.textContent = `Modo cambiado a: ${nuevoModo}`;
+      inputElement.value = "";
+      return;
+    }
+
+    if (input.startsWith("/setrespuesta ")) {
+      // formato: /setrespuesta hola=Hola nuevo texto
+      const data = raw.replace("/setrespuesta ", "");
+      const partes = data.split("=");
+
+      if (partes.length === 2) {
+        const key = partes[0].toLowerCase().trim();
+        const value = partes[1].trim();
+        eliConfig.responses[key] = value;
+        response.textContent = `Respuesta guardada para "${key}"`;
+      } else {
+        response.textContent = "Formato inválido. Usa: /setrespuesta clave=respuesta";
+      }
+
       inputElement.value = "";
       return;
     }
@@ -61,12 +80,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     // 🧠 Respuestas normales
     let reply = eliConfig.responses?.default || "Te escucho 🙂";
 
-    if (eliConfig.responses) {
-      for (const key in eliConfig.responses) {
-        if (input.includes(key)) {
-          reply = eliConfig.responses[key];
-          break;
-        }
+    for (const key in eliConfig.responses) {
+      if (input.includes(key)) {
+        reply = eliConfig.responses[key];
+        break;
       }
     }
 
