@@ -1,5 +1,4 @@
-// ELI v1.7 - auto-configuración segura
-// PASO 3: ELI modifica su comportamiento sin tocar código
+// ELI v1.4.1 - núcleo estable con memoria y órdenes priorizadas
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -13,32 +12,37 @@ document.addEventListener("DOMContentLoaded", async function () {
     return;
   }
 
-  let pendingAction = null;
-
-  // Configuración base
   let eliConfig = {
     mode: "manual",
-    memory: { enabled: true },
-    responses: { default: "ELI activo" }
+    memory: {
+      enabled: false,
+      lastMessage: ""
+    },
+    responses: {
+      default: "ELI activo"
+    }
   };
 
-  // Cargar config base
+  // Cargar configuración externa
   try {
     const res = await fetch("./eli-config.json");
     if (res.ok) {
       eliConfig = await res.json();
     }
-  } catch {}
+  } catch (e) {
+    console.warn("No se pudo cargar eli-config.json");
+  }
 
-  // Cargar respuestas dinámicas
-  const savedResponses = JSON.parse(
-    localStorage.getItem("eli_dynamic_responses") || "{}"
+  // Memoria
+  if (eliConfig.memory?.enabled) {
+    const saved = localStorage.getItem("eli_last_message");
+    if (saved) eliConfig.memory.lastMessage = saved;
+  }
+
+  // Mejoras
+  let eliImprovements = JSON.parse(
+    localStorage.getItem("eli_improvements") || "[]"
   );
-
-  eliConfig.responses = {
-    ...eliConfig.responses,
-    ...savedResponses
-  };
 
   sendBtn.addEventListener("click", function () {
     const input = inputElement.value.trim();
@@ -49,64 +53,50 @@ document.addEventListener("DOMContentLoaded", async function () {
       return;
     }
 
-    // 🔐 Confirmación pendiente
-    if (pendingAction) {
-      if (text === "si" || text === "sí") {
+    let reply = "";
 
-        // Ejecutar acción
-        if (pendingAction.type === "respuesta") {
-          savedResponses[pendingAction.key] = pendingAction.value;
-          localStorage.setItem(
-            "eli_dynamic_responses",
-            JSON.stringify(savedResponses)
-          );
-          response.textContent =
-            `✅ Respuesta guardada:\n"${pendingAction.key}" → "${pendingAction.value}"`;
+    // 🔴 PRIORIDAD 1: COMANDOS
+    if (text === "mejoras") {
+      reply = eliImprovements.length
+        ? "📌 Mejoras:\n- " + eliImprovements.join("\n- ")
+        : "No hay mejoras registradas.";
+    }
+
+    else if (text.startsWith("mejora:")) {
+      const imp = input.substring(7).trim();
+      if (imp) {
+        eliImprovements.push(imp);
+        localStorage.setItem(
+          "eli_improvements",
+          JSON.stringify(eliImprovements)
+        );
+        reply = "✅ Mejora guardada.";
+      } else {
+        reply = "Escribe la mejora después de 'mejora:'";
+      }
+    }
+
+    else if (text === "memoria" && eliConfig.memory?.enabled) {
+      reply = eliConfig.memory.lastMessage
+        ? `Recuerdo: "${eliConfig.memory.lastMessage}"`
+        : "No tengo recuerdos aún.";
+    }
+
+    // 🟢 PRIORIDAD 2: RESPUESTAS CONFIGURADAS
+    else {
+      reply = eliConfig.responses?.default || "Te escucho 🙂";
+      for (const key in eliConfig.responses) {
+        if (text.includes(key)) {
+          reply = eliConfig.responses[key];
+          break;
         }
-
-        pendingAction = null;
-      } else if (text === "no") {
-        response.textContent = "❌ Acción cancelada.";
-        pendingAction = null;
-      } else {
-        response.textContent = "Responde solo con: sí o no";
       }
-
-      inputElement.value = "";
-      return;
     }
 
-    // 🧠 Detectar nueva respuesta
-    if (text.startsWith("respuesta:")) {
-      const content = input.substring(10).trim();
-      const parts = content.split("=");
-
-      if (parts.length === 2) {
-        pendingAction = {
-          type: "respuesta",
-          key: parts[0].trim().toLowerCase(),
-          value: parts[1].trim()
-        };
-
-        response.textContent =
-          `⚠️ Nueva respuesta detectada:\n"${pendingAction.key}" → "${pendingAction.value}"\n¿Confirmas? (sí / no)`;
-      } else {
-        response.textContent =
-          "Formato incorrecto.\nEjemplo:\nrespuesta: hola = Hola 👋";
-      }
-
-      inputElement.value = "";
-      return;
-    }
-
-    // 🤖 Responder normalmente
-    let reply = eliConfig.responses.default;
-
-    for (const key in eliConfig.responses) {
-      if (text.includes(key)) {
-        reply = eliConfig.responses[key];
-        break;
-      }
+    // Guardar memoria
+    if (eliConfig.memory?.enabled) {
+      localStorage.setItem("eli_last_message", input);
+      eliConfig.memory.lastMessage = input;
     }
 
     response.textContent = reply;
@@ -114,7 +104,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   });
 });
 
-// Abrir ChatGPT
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
