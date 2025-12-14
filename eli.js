@@ -1,4 +1,4 @@
-// ELI v1 - núcleo estable con lectura de configuración remota
+// ELI v1 - núcleo con ejecución de órdenes remotas
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI conectado correctamente");
@@ -18,15 +18,24 @@ document.addEventListener("DOMContentLoaded", async function () {
     const config = await res.json();
 
     if (config.lastCommand) {
-      response.textContent = `📡 Orden remota recibida: "${config.lastCommand}"`;
+      ejecutarOrden(config.lastCommand.toLowerCase());
     }
   } catch (err) {
     console.warn("No se pudo leer eli-config.json");
   }
 
+  function ejecutarOrden(orden) {
+    if (orden.includes("saludar")) {
+      response.textContent = "👋 Hola, recibí tu orden desde el celular.";
+    } else if (orden.includes("estado")) {
+      response.textContent = "✅ ELI está activa y funcionando correctamente.";
+    } else {
+      response.textContent = `📡 Orden recibida: "${orden}" (sin acción definida aún)`;
+    }
+  }
+
   function processInput() {
     const input = inputElement.value.trim();
-
     if (input === "") {
       response.textContent = "Escribe algo primero 🙂";
       return;
