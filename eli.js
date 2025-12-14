@@ -1,4 +1,4 @@
-// ELI v1.2 - núcleo estable con memoria simple
+// ELI v1.3 - núcleo estable con memoria controlada
 // Lee configuración externa y guarda memoria local
 
 document.addEventListener("DOMContentLoaded", async function () {
@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     console.warn("ELI: error leyendo eli-config.json");
   }
 
-  // Cargar memoria local si existe
+  // Cargar memoria guardada
   if (eliConfig.memory?.enabled) {
     const savedMemory = localStorage.getItem("eli_last_message");
     if (savedMemory) {
@@ -55,21 +55,27 @@ document.addEventListener("DOMContentLoaded", async function () {
     const text = input.toLowerCase();
     let reply = eliConfig.responses?.default || "Te escucho 🙂";
 
-    // Buscar respuestas configuradas
-    if (eliConfig.responses) {
-      for (const key in eliConfig.responses) {
-        if (text.includes(key)) {
-          reply = eliConfig.responses[key];
-          break;
+    // Comando especial: memoria
+    if (text.includes("memoria") && eliConfig.memory?.enabled) {
+      reply = eliConfig.memory.lastMessage
+        ? `Recuerdo que dijiste: "${eliConfig.memory.lastMessage}"`
+        : "Aún no tengo nada en memoria.";
+    } else {
+      // Buscar respuestas configuradas
+      if (eliConfig.responses) {
+        for (const key in eliConfig.responses) {
+          if (text.includes(key)) {
+            reply = eliConfig.responses[key];
+            break;
+          }
         }
       }
     }
 
-    // Guardar memoria
+    // Guardar memoria (siempre)
     if (eliConfig.memory?.enabled) {
       localStorage.setItem("eli_last_message", input);
       eliConfig.memory.lastMessage = input;
-      reply += `\n\n(Recuerdo que dijiste: "${input}")`;
     }
 
     response.textContent = reply;
