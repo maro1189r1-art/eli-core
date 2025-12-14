@@ -1,5 +1,5 @@
 // eli-core/chatbot.js
-// ELI v1 – núcleo estable y funcional
+// ELI v1 – estado estable confirmado
 
 document.addEventListener("DOMContentLoaded", function () {
   console.log("ELI conectado correctamente");
@@ -24,15 +24,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const text = input.toLowerCase();
     let reply = "";
 
-    // 🔹 MODO MANUAL (estable)
     if (text.includes("hola")) {
-      reply = "Hola 👋 Soy ELI (modo manual). ¿En qué te ayudo?";
+      reply = "Hola 👋 Soy ELI. ¿En qué te ayudo?";
     } else if (text.includes("quien eres")) {
-      reply = "Soy ELI, un asistente en evolución creado por ti.";
+      reply = "Soy ELI, un asistente creado por ti.";
     } else if (text.includes("estado")) {
       reply = "ELI está funcionando correctamente ✅";
     } else {
-      reply = "Aún estoy aprendiendo, pero te escucho 🙂";
+      reply = "Te escucho 🙂";
     }
 
     response.textContent = reply;
@@ -40,7 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
-// 🔹 Abrir ChatGPT en nueva ventana
+// Botón para abrir ChatGPT
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
