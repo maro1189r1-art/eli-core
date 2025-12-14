@@ -1,4 +1,5 @@
-// ELI v1.4.1 - núcleo estable con memoria y órdenes priorizadas
+// ELI v1.5 - núcleo estable
+// Usa configuración externa, memoria y aplica mejoras simples
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -12,6 +13,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     return;
   }
 
+  // Configuración por defecto
   let eliConfig = {
     mode: "manual",
     memory: {
@@ -28,67 +30,90 @@ document.addEventListener("DOMContentLoaded", async function () {
     const res = await fetch("./eli-config.json");
     if (res.ok) {
       eliConfig = await res.json();
+      console.log("ELI config cargada:", eliConfig);
     }
-  } catch (e) {
-    console.warn("No se pudo cargar eli-config.json");
+  } catch (error) {
+    console.warn("ELI: error leyendo eli-config.json");
   }
 
-  // Memoria
+  // Cargar memoria guardada
   if (eliConfig.memory?.enabled) {
-    const saved = localStorage.getItem("eli_last_message");
-    if (saved) eliConfig.memory.lastMessage = saved;
+    const savedMemory = localStorage.getItem("eli_last_message");
+    if (savedMemory) {
+      eliConfig.memory.lastMessage = savedMemory;
+    }
   }
 
-  // Mejoras
+  // Cargar mejoras guardadas
   let eliImprovements = JSON.parse(
     localStorage.getItem("eli_improvements") || "[]"
   );
 
   sendBtn.addEventListener("click", function () {
     const input = inputElement.value.trim();
-    const text = input.toLowerCase();
 
-    if (!input) {
+    if (input === "") {
       response.textContent = "Escribe algo primero 🙂";
       return;
     }
 
-    let reply = "";
+    const text = input.toLowerCase();
+    let reply = eliConfig.responses?.default || "Te escucho 🙂";
 
-    // 🔴 PRIORIDAD 1: COMANDOS
-    if (text === "mejoras") {
-      reply = eliImprovements.length
-        ? "📌 Mejoras:\n- " + eliImprovements.join("\n- ")
-        : "No hay mejoras registradas.";
+    // 🔹 COMANDO: ver memoria
+    if (text.includes("memoria") && eliConfig.memory?.enabled) {
+      reply = eliConfig.memory.lastMessage
+        ? `Recuerdo que dijiste: "${eliConfig.memory.lastMessage}"`
+        : "Aún no tengo nada en memoria.";
     }
 
+    // 🔹 COMANDO: agregar mejora
     else if (text.startsWith("mejora:")) {
-      const imp = input.substring(7).trim();
-      if (imp) {
-        eliImprovements.push(imp);
+      const improvement = input.substring(7).trim();
+      if (improvement) {
+        eliImprovements.push(improvement);
         localStorage.setItem(
           "eli_improvements",
           JSON.stringify(eliImprovements)
         );
-        reply = "✅ Mejora guardada.";
+        reply = "✅ Mejora registrada. La tendré en cuenta.";
       } else {
-        reply = "Escribe la mejora después de 'mejora:'";
+        reply = "Escribe la mejora después de 'mejora:'.";
       }
     }
 
-    else if (text === "memoria" && eliConfig.memory?.enabled) {
-      reply = eliConfig.memory.lastMessage
-        ? `Recuerdo: "${eliConfig.memory.lastMessage}"`
-        : "No tengo recuerdos aún.";
+    // 🔹 COMANDO: listar mejoras
+    else if (text === "mejoras") {
+      if (eliImprovements.length === 0) {
+        reply = "No tengo mejoras pendientes aún.";
+      } else {
+        reply =
+          "📌 Mejoras registradas:\n- " + eliImprovements.join("\n- ");
+      }
     }
 
-    // 🟢 PRIORIDAD 2: RESPUESTAS CONFIGURADAS
+    // 🔹 APLICAR MEJORA: presentación
+    else if (
+      text.includes("quien eres") &&
+      eliImprovements.some(m =>
+        m.toLowerCase().includes("present")
+      )
+    ) {
+      reply =
+        "Soy ELI 🤖, un asistente digital en evolución.\n" +
+        "Fui creado para aprender, mejorar y ayudarte a construir sistemas inteligentes.\n" +
+        "Actualmente aprendo a través de órdenes simples, memoria local y mejoras que tú defines.\n" +
+        "Mi objetivo final es evolucionar y automatizar tareas contigo.";
+    }
+
+    // 🔹 Respuestas normales desde config
     else {
-      reply = eliConfig.responses?.default || "Te escucho 🙂";
-      for (const key in eliConfig.responses) {
-        if (text.includes(key)) {
-          reply = eliConfig.responses[key];
-          break;
+      if (eliConfig.responses) {
+        for (const key in eliConfig.responses) {
+          if (text.includes(key)) {
+            reply = eliConfig.responses[key];
+            break;
+          }
         }
       }
     }
@@ -104,6 +129,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   });
 });
 
+// Abrir ChatGPT en nueva ventana
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
