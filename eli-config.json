@@ -1,10 +1,7 @@
 {
   "mode": "manual",
-  "allowEvolution": false,
   "responses": {
-    "hola": "Hola 👋 Soy ELI, activo y estable.",
-    "quien eres": "Soy ELI, un asistente en evolución controlada.",
-    "estado": "Modo manual activo. Evolución bloqueada.",
-    "default": "Te escucho 🙂"
-  }
-}
+    "hola": "Hola 👋 Soy ELI y ahora me configuras desde tu celular.",
+    "quien eres": "Soy ELI. Mi comportamiento cambia sin modificar código.",
+    "ayuda": "Puedes editar eli-config.json desde tu teléfono.",
+    "default": "ELI activo. Esper
