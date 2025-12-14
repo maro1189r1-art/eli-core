@@ -1,5 +1,5 @@
-// ELI v1.5 - núcleo estable
-// Usa configuración externa, memoria y aplica mejoras simples
+// ELI v1.6 - núcleo estable con prioridades correctas
+// Prioriza: comandos → mejoras → respuestas configuradas → default
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -58,16 +58,20 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     const text = input.toLowerCase();
-    let reply = eliConfig.responses?.default || "Te escucho 🙂";
+    let reply = "";
 
-    // 🔹 COMANDO: ver memoria
-    if (text.includes("memoria") && eliConfig.memory?.enabled) {
+    /* =========================
+       1️⃣ COMANDOS EXPLÍCITOS
+    ========================== */
+
+    // Ver memoria
+    if (text === "memoria" && eliConfig.memory?.enabled) {
       reply = eliConfig.memory.lastMessage
         ? `Recuerdo que dijiste: "${eliConfig.memory.lastMessage}"`
         : "Aún no tengo nada en memoria.";
     }
 
-    // 🔹 COMANDO: agregar mejora
+    // Agregar mejora
     else if (text.startsWith("mejora:")) {
       const improvement = input.substring(7).trim();
       if (improvement) {
@@ -82,17 +86,18 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    // 🔹 COMANDO: listar mejoras
+    // Listar mejoras
     else if (text === "mejoras") {
-      if (eliImprovements.length === 0) {
-        reply = "No tengo mejoras pendientes aún.";
-      } else {
-        reply =
-          "📌 Mejoras registradas:\n- " + eliImprovements.join("\n- ");
-      }
+      reply =
+        eliImprovements.length === 0
+          ? "No tengo mejoras pendientes aún."
+          : "📌 Mejoras registradas:\n- " + eliImprovements.join("\n- ");
     }
 
-    // 🔹 APLICAR MEJORA: presentación
+    /* =========================
+       2️⃣ APLICAR MEJORAS
+    ========================== */
+
     else if (
       text.includes("quien eres") &&
       eliImprovements.some(m =>
@@ -101,21 +106,35 @@ document.addEventListener("DOMContentLoaded", async function () {
     ) {
       reply =
         "Soy ELI 🤖, un asistente digital en evolución.\n" +
-        "Fui creado para aprender, mejorar y ayudarte a construir sistemas inteligentes.\n" +
-        "Actualmente aprendo a través de órdenes simples, memoria local y mejoras que tú defines.\n" +
-        "Mi objetivo final es evolucionar y automatizar tareas contigo.";
+        "Aprendo mediante memoria, configuración y mejoras que tú defines.\n" +
+        "Mi objetivo es ayudarte a construir y automatizar sistemas inteligentes,\n" +
+        "evolucionando paso a paso contigo.";
     }
 
-    // 🔹 Respuestas normales desde config
-    else {
-      if (eliConfig.responses) {
-        for (const key in eliConfig.responses) {
-          if (text.includes(key)) {
-            reply = eliConfig.responses[key];
-            break;
-          }
+    /* =========================
+       3️⃣ RESPUESTAS CONFIGURADAS
+    ========================== */
+
+    else if (eliConfig.responses) {
+      let matched = false;
+      for (const key in eliConfig.responses) {
+        if (key !== "default" && text.includes(key)) {
+          reply = eliConfig.responses[key];
+          matched = true;
+          break;
         }
       }
+      if (!matched) {
+        reply = eliConfig.responses.default || "ELI activo";
+      }
+    }
+
+    /* =========================
+       4️⃣ DEFAULT FINAL
+    ========================== */
+
+    else {
+      reply = "ELI activo";
     }
 
     // Guardar memoria
