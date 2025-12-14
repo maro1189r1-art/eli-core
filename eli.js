@@ -1,5 +1,5 @@
-// ELI v1.5 - detección de intención (PASO 1)
-// NO ejecuta cambios, solo identifica órdenes
+// ELI v1.6 - confirmación segura antes de ejecutar
+// Paso 2 del sistema autoprogramable
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     console.error("ELI error: elementos del DOM no encontrados");
     return;
   }
+
+  let pendingAction = null;
 
   // Configuración por defecto
   let eliConfig = {
@@ -30,7 +32,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     const res = await fetch("./eli-config.json");
     if (res.ok) {
       eliConfig = await res.json();
-      console.log("ELI config cargada:", eliConfig);
     }
   } catch (error) {
     console.warn("ELI: error leyendo eli-config.json");
@@ -44,61 +45,58 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
   }
 
-  // Mejoras pendientes
-  let eliImprovements = JSON.parse(
-    localStorage.getItem("eli_improvements") || "[]"
-  );
-
   sendBtn.addEventListener("click", function () {
     const input = inputElement.value.trim();
+    const text = input.toLowerCase();
 
     if (input === "") {
       response.textContent = "Escribe algo primero 🙂";
       return;
     }
 
-    const text = input.toLowerCase();
-    let reply = "";
-
-    // 🔎 DETECCIÓN DE INTENCIÓN (PASO 1)
-    if (text.startsWith("tarea:")) {
-      reply = "🧠 Intención detectada: CREAR TAREA\n(aún no ejecutada)";
-    } 
-    else if (text.startsWith("respuesta:")) {
-      reply = "🧠 Intención detectada: MODIFICAR RESPUESTA\n(aún no ejecutada)";
-    } 
-    else if (text.startsWith("accion:")) {
-      reply = "🧠 Intención detectada: EJECUTAR ACCIÓN\n(aún no ejecutada)";
-    } 
-    else if (text.startsWith("mejora:")) {
-      const improvement = input.substring(7).trim();
-      if (improvement) {
-        eliImprovements.push(improvement);
-        localStorage.setItem(
-          "eli_improvements",
-          JSON.stringify(eliImprovements)
-        );
-        reply = "✅ Mejora registrada (intención aceptada).";
+    // 🔐 Confirmación pendiente
+    if (pendingAction) {
+      if (text === "si" || text === "sí") {
+        response.textContent = `✅ Acción confirmada:\n${pendingAction.description}`;
+        pendingAction = null;
+      } else if (text === "no") {
+        response.textContent = "❌ Acción cancelada.";
+        pendingAction = null;
       } else {
-        reply = "Escribe la mejora después de 'mejora:'.";
+        response.textContent = "Responde solo con: sí o no";
       }
+      inputElement.value = "";
+      return;
     }
-    else if (text.includes("memoria") && eliConfig.memory?.enabled) {
-      reply = eliConfig.memory.lastMessage
-        ? `Recuerdo que dijiste: "${eliConfig.memory.lastMessage}"`
-        : "Aún no tengo nada en memoria.";
+
+    // 🧠 Detectar intención
+    if (text.startsWith("tarea:")) {
+      pendingAction = {
+        type: "tarea",
+        description: input
+      };
+      response.textContent =
+        "⚠️ Detecté una TAREA.\n¿Confirmas ejecutarla? (sí / no)";
+    }
+    else if (text.startsWith("respuesta:")) {
+      pendingAction = {
+        type: "respuesta",
+        description: input
+      };
+      response.textContent =
+        "⚠️ Detecté una MODIFICACIÓN DE RESPUESTA.\n¿Confirmas ejecutarla? (sí / no)";
+    }
+    else if (text.startsWith("accion:")) {
+      pendingAction = {
+        type: "accion",
+        description: input
+      };
+      response.textContent =
+        "⚠️ Detecté una ACCIÓN.\n¿Confirmas ejecutarla? (sí / no)";
     }
     else {
-      // Respuestas normales desde config
-      reply = eliConfig.responses?.default || "Te escucho 🙂";
-      if (eliConfig.responses) {
-        for (const key in eliConfig.responses) {
-          if (text.includes(key)) {
-            reply = eliConfig.responses[key];
-            break;
-          }
-        }
-      }
+      response.textContent =
+        eliConfig.responses?.default || "ELI activo";
     }
 
     // Guardar memoria
@@ -107,12 +105,11 @@ document.addEventListener("DOMContentLoaded", async function () {
       eliConfig.memory.lastMessage = input;
     }
 
-    response.textContent = reply;
     inputElement.value = "";
   });
 });
 
-// Abrir ChatGPT en nueva ventana
+// Abrir ChatGPT
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
