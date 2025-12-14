@@ -1,37 +1,46 @@
-// ELI v1 - API básica modo manual
-// Ruta: /api/chatbot
+// eli-core/chatbot.js
+// ELI v1 – núcleo estable y funcional
 
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};
+document.addEventListener("DOMContentLoaded", function () {
+  console.log("ELI conectado correctamente");
 
-export default function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      reply: "Método no permitido",
-    });
+  const sendBtn = document.getElementById("sendBtn");
+  const inputElement = document.getElementById("userInput");
+  const response = document.getElementById("response");
+
+  if (!sendBtn || !inputElement || !response) {
+    console.error("ELI error: elementos del DOM no encontrados");
+    return;
   }
 
-  const { message } = req.body;
+  sendBtn.addEventListener("click", function () {
+    const input = inputElement.value.trim();
 
-  if (!message || message.trim() === "") {
-    return res.status(200).json({
-      reply: "Escribe algo primero 🙂",
-    });
-  }
+    if (input === "") {
+      response.textContent = "Escribe algo primero 🙂";
+      return;
+    }
 
-  const text = message.toLowerCase();
-  let reply = "";
+    const text = input.toLowerCase();
+    let reply = "";
 
-  if (text.includes("hola")) {
-    reply = "Hola 👋 Soy ELI, ¿en qué te ayudo?";
-  } else if (text.includes("quien eres")) {
-    reply = "Soy ELI, un asistente en evolución creado por ti.";
-  } else {
-    reply = "Modo manual activo. Te escucho 🙂";
-  }
+    // 🔹 MODO MANUAL (estable)
+    if (text.includes("hola")) {
+      reply = "Hola 👋 Soy ELI (modo manual). ¿En qué te ayudo?";
+    } else if (text.includes("quien eres")) {
+      reply = "Soy ELI, un asistente en evolución creado por ti.";
+    } else if (text.includes("estado")) {
+      reply = "ELI está funcionando correctamente ✅";
+    } else {
+      reply = "Aún estoy aprendiendo, pero te escucho 🙂";
+    }
 
-  return res.status(200).json({ reply });
+    response.textContent = reply;
+    inputElement.value = "";
+  });
+});
+
+// 🔹 Abrir ChatGPT en nueva ventana
+function openChat() {
+  window.open("https://chat.openai.com/", "_blank");
 }
