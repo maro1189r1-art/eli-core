@@ -1,5 +1,5 @@
-// ELI v1.5 - núcleo estable con memoria, órdenes de mejora y control en tiempo real
-// Lee configuración externa, guarda memoria y aplica mejoras
+// ELI v1.5 - detección de intención (PASO 1)
+// NO ejecuta cambios, solo identifica órdenes
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     console.warn("ELI: error leyendo eli-config.json");
   }
 
-  // Cargar memoria guardada
+  // Cargar memoria
   if (eliConfig.memory?.enabled) {
     const savedMemory = localStorage.getItem("eli_last_message");
     if (savedMemory) {
@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
   }
 
-  // Cargar mejoras pendientes
+  // Mejoras pendientes
   let eliImprovements = JSON.parse(
     localStorage.getItem("eli_improvements") || "[]"
   );
@@ -58,16 +58,18 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     const text = input.toLowerCase();
-    let reply = eliConfig.responses?.default || "Te escucho 🙂";
+    let reply = "";
 
-    // 🔹 Comando: ver memoria
-    if (text.includes("memoria") && eliConfig.memory?.enabled) {
-      reply = eliConfig.memory.lastMessage
-        ? `Recuerdo que dijiste: "${eliConfig.memory.lastMessage}"`
-        : "Aún no tengo nada en memoria.";
-    }
-
-    // 🔹 Comando: agregar mejora
+    // 🔎 DETECCIÓN DE INTENCIÓN (PASO 1)
+    if (text.startsWith("tarea:")) {
+      reply = "🧠 Intención detectada: CREAR TAREA\n(aún no ejecutada)";
+    } 
+    else if (text.startsWith("respuesta:")) {
+      reply = "🧠 Intención detectada: MODIFICAR RESPUESTA\n(aún no ejecutada)";
+    } 
+    else if (text.startsWith("accion:")) {
+      reply = "🧠 Intención detectada: EJECUTAR ACCIÓN\n(aún no ejecutada)";
+    } 
     else if (text.startsWith("mejora:")) {
       const improvement = input.substring(7).trim();
       if (improvement) {
@@ -76,37 +78,19 @@ document.addEventListener("DOMContentLoaded", async function () {
           "eli_improvements",
           JSON.stringify(eliImprovements)
         );
-        reply = "✅ Mejora registrada. La tendré en cuenta.";
+        reply = "✅ Mejora registrada (intención aceptada).";
       } else {
-        reply = "Escribe la mejora después de 'mejora:' (ej: mejora: saludar mejor).";
+        reply = "Escribe la mejora después de 'mejora:'.";
       }
     }
-
-    // 🔹 Comando: listar mejoras
-    else if (text === "mejoras") {
-      if (eliImprovements.length === 0) {
-        reply = "No tengo mejoras pendientes aún.";
-      } else {
-        reply =
-          "📌 Mejoras pendientes:\n- " + eliImprovements.join("\n- ");
-      }
+    else if (text.includes("memoria") && eliConfig.memory?.enabled) {
+      reply = eliConfig.memory.lastMessage
+        ? `Recuerdo que dijiste: "${eliConfig.memory.lastMessage}"`
+        : "Aún no tengo nada en memoria.";
     }
-
-    // 🔹 Comando: aplicar mejora (actualiza respuestas)
-    else if (text.startsWith("aplicar mejora:")) {
-      const applyImprovement = input.substring(15).trim();
-      if (applyImprovement) {
-        // Guardar en las respuestas de ELI
-        eliConfig.responses[applyImprovement] = `Respuesta actualizada para "${applyImprovement}"`;
-        localStorage.setItem("eli-config", JSON.stringify(eliConfig)); // Guardar cambios
-        reply = `✅ Mejora aplicada: ${applyImprovement}`;
-      } else {
-        reply = "Escribe el nombre de la mejora después de 'aplicar mejora:'.";
-      }
-    }
-
-    // 🔹 Respuestas normales
     else {
+      // Respuestas normales desde config
+      reply = eliConfig.responses?.default || "Te escucho 🙂";
       if (eliConfig.responses) {
         for (const key in eliConfig.responses) {
           if (text.includes(key)) {
@@ -117,7 +101,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    // Guardar memoria siempre
+    // Guardar memoria
     if (eliConfig.memory?.enabled) {
       localStorage.setItem("eli_last_message", input);
       eliConfig.memory.lastMessage = input;
