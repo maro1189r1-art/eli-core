@@ -1,5 +1,5 @@
-// ELI v1.3 - núcleo administrable desde chat
-// Controlado por eli-config.json
+// ELI v1.2 - núcleo estable con memoria simple
+// Lee configuración externa y guarda memoria local
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -13,13 +13,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     return;
   }
 
-  // Configuración segura por defecto
+  // Configuración por defecto
   let eliConfig = {
     mode: "manual",
-    allowEvolution: false,
+    memory: {
+      enabled: false,
+      lastMessage: ""
+    },
     responses: {
-      hola: "Hola 👋 Soy ELI",
-      default: "ELI activo."
+      default: "ELI activo"
     }
   };
 
@@ -28,63 +30,46 @@ document.addEventListener("DOMContentLoaded", async function () {
     const res = await fetch("./eli-config.json");
     if (res.ok) {
       eliConfig = await res.json();
-      console.log("Config cargada:", eliConfig);
+      console.log("ELI config cargada:", eliConfig);
     }
-  } catch (e) {
-    console.warn("No se pudo cargar eli-config.json");
+  } catch (error) {
+    console.warn("ELI: error leyendo eli-config.json");
+  }
+
+  // Cargar memoria local si existe
+  if (eliConfig.memory?.enabled) {
+    const savedMemory = localStorage.getItem("eli_last_message");
+    if (savedMemory) {
+      eliConfig.memory.lastMessage = savedMemory;
+    }
   }
 
   sendBtn.addEventListener("click", function () {
-    const raw = inputElement.value.trim();
-    const input = raw.toLowerCase();
+    const input = inputElement.value.trim();
 
     if (input === "") {
       response.textContent = "Escribe algo primero 🙂";
       return;
     }
 
-    // 🔐 COMANDOS ADMIN
-    if (input === "/estado") {
-      response.textContent =
-        `Modo: ${eliConfig.mode} | Evolución: ${eliConfig.allowEvolution ? "ACTIVA" : "BLOQUEADA"}`;
-      inputElement.value = "";
-      return;
-    }
-
-    if (input.startsWith("/setmodo ")) {
-      const nuevoModo = input.replace("/setmodo ", "");
-      eliConfig.mode = nuevoModo;
-      response.textContent = `Modo cambiado a: ${nuevoModo}`;
-      inputElement.value = "";
-      return;
-    }
-
-    if (input.startsWith("/setrespuesta ")) {
-      // formato: /setrespuesta hola=Hola nuevo texto
-      const data = raw.replace("/setrespuesta ", "");
-      const partes = data.split("=");
-
-      if (partes.length === 2) {
-        const key = partes[0].toLowerCase().trim();
-        const value = partes[1].trim();
-        eliConfig.responses[key] = value;
-        response.textContent = `Respuesta guardada para "${key}"`;
-      } else {
-        response.textContent = "Formato inválido. Usa: /setrespuesta clave=respuesta";
-      }
-
-      inputElement.value = "";
-      return;
-    }
-
-    // 🧠 Respuestas normales
+    const text = input.toLowerCase();
     let reply = eliConfig.responses?.default || "Te escucho 🙂";
 
-    for (const key in eliConfig.responses) {
-      if (input.includes(key)) {
-        reply = eliConfig.responses[key];
-        break;
+    // Buscar respuestas configuradas
+    if (eliConfig.responses) {
+      for (const key in eliConfig.responses) {
+        if (text.includes(key)) {
+          reply = eliConfig.responses[key];
+          break;
+        }
       }
+    }
+
+    // Guardar memoria
+    if (eliConfig.memory?.enabled) {
+      localStorage.setItem("eli_last_message", input);
+      eliConfig.memory.lastMessage = input;
+      reply += `\n\n(Recuerdo que dijiste: "${input}")`;
     }
 
     response.textContent = reply;
@@ -92,7 +77,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   });
 });
 
-// Abrir ChatGPT
+// Abrir ChatGPT en nueva ventana
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
