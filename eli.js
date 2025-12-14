@@ -1,6 +1,24 @@
-// ELI v1 - núcleo con ejecución de órdenes remotas
+// ELI v1 - núcleo básico estable
+// Preparado para evolución futura
 
-document.addEventListener("DOMContentLoaded", async function () {
+let ELI_CONFIG = {
+  mode: "manual",
+  allowEvolution: false,
+  lastCommand: ""
+};
+
+// Cargar configuración de ELI
+fetch("./eli-config.json")
+  .then(response => response.json())
+  .then(config => {
+    ELI_CONFIG = config;
+    console.log("Configuración de ELI cargada:", ELI_CONFIG);
+  })
+  .catch(error => {
+    console.warn("No se pudo cargar eli-config.json, usando valores por defecto");
+  });
+
+document.addEventListener("DOMContentLoaded", function () {
   console.log("ELI conectado correctamente");
 
   const sendBtn = document.getElementById("sendBtn");
@@ -12,30 +30,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     return;
   }
 
-  // 🔹 Leer configuración remota
-  try {
-    const res = await fetch("eli-config.json");
-    const config = await res.json();
-
-    if (config.lastCommand) {
-      ejecutarOrden(config.lastCommand.toLowerCase());
-    }
-  } catch (err) {
-    console.warn("No se pudo leer eli-config.json");
-  }
-
-  function ejecutarOrden(orden) {
-    if (orden.includes("saludar")) {
-      response.textContent = "👋 Hola, recibí tu orden desde el celular.";
-    } else if (orden.includes("estado")) {
-      response.textContent = "✅ ELI está activa y funcionando correctamente.";
-    } else {
-      response.textContent = `📡 Orden recibida: "${orden}" (sin acción definida aún)`;
-    }
-  }
-
-  function processInput() {
+  sendBtn.addEventListener("click", function () {
     const input = inputElement.value.trim();
+
     if (input === "") {
       response.textContent = "Escribe algo primero 🙂";
       return;
@@ -46,26 +43,23 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     if (text.includes("hola")) {
       reply = "Hola 👋 Soy ELI, ¿en qué te ayudo?";
-    } else if (text.includes("quien eres")) {
+    } 
+    else if (text.includes("quien eres")) {
       reply = "Soy ELI, un asistente en evolución creado por ti.";
-    } else {
+    }
+    else if (text.includes("modo")) {
+      reply = `Estoy en modo: ${ELI_CONFIG.mode}`;
+    }
+    else {
       reply = "Aún estoy aprendiendo, pero te escucho 🙂";
     }
 
     response.textContent = reply;
     inputElement.value = "";
-  }
-
-  sendBtn.addEventListener("click", processInput);
-
-  inputElement.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {
-      processInput();
-    }
   });
 });
 
-// Abrir ChatGPT
+// Abrir ChatGPT en una nueva ventana
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
