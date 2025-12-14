@@ -1,5 +1,5 @@
-// ELI v1.6 - confirmación segura antes de ejecutar
-// Paso 2 del sistema autoprogramable
+// ELI v1.7 - auto-configuración segura
+// PASO 3: ELI modifica su comportamiento sin tocar código
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -15,41 +15,36 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   let pendingAction = null;
 
-  // Configuración por defecto
+  // Configuración base
   let eliConfig = {
     mode: "manual",
-    memory: {
-      enabled: false,
-      lastMessage: ""
-    },
-    responses: {
-      default: "ELI activo"
-    }
+    memory: { enabled: true },
+    responses: { default: "ELI activo" }
   };
 
-  // Cargar configuración externa
+  // Cargar config base
   try {
     const res = await fetch("./eli-config.json");
     if (res.ok) {
       eliConfig = await res.json();
     }
-  } catch (error) {
-    console.warn("ELI: error leyendo eli-config.json");
-  }
+  } catch {}
 
-  // Cargar memoria
-  if (eliConfig.memory?.enabled) {
-    const savedMemory = localStorage.getItem("eli_last_message");
-    if (savedMemory) {
-      eliConfig.memory.lastMessage = savedMemory;
-    }
-  }
+  // Cargar respuestas dinámicas
+  const savedResponses = JSON.parse(
+    localStorage.getItem("eli_dynamic_responses") || "{}"
+  );
+
+  eliConfig.responses = {
+    ...eliConfig.responses,
+    ...savedResponses
+  };
 
   sendBtn.addEventListener("click", function () {
     const input = inputElement.value.trim();
     const text = input.toLowerCase();
 
-    if (input === "") {
+    if (!input) {
       response.textContent = "Escribe algo primero 🙂";
       return;
     }
@@ -57,7 +52,18 @@ document.addEventListener("DOMContentLoaded", async function () {
     // 🔐 Confirmación pendiente
     if (pendingAction) {
       if (text === "si" || text === "sí") {
-        response.textContent = `✅ Acción confirmada:\n${pendingAction.description}`;
+
+        // Ejecutar acción
+        if (pendingAction.type === "respuesta") {
+          savedResponses[pendingAction.key] = pendingAction.value;
+          localStorage.setItem(
+            "eli_dynamic_responses",
+            JSON.stringify(savedResponses)
+          );
+          response.textContent =
+            `✅ Respuesta guardada:\n"${pendingAction.key}" → "${pendingAction.value}"`;
+        }
+
         pendingAction = null;
       } else if (text === "no") {
         response.textContent = "❌ Acción cancelada.";
@@ -65,46 +71,45 @@ document.addEventListener("DOMContentLoaded", async function () {
       } else {
         response.textContent = "Responde solo con: sí o no";
       }
+
       inputElement.value = "";
       return;
     }
 
-    // 🧠 Detectar intención
-    if (text.startsWith("tarea:")) {
-      pendingAction = {
-        type: "tarea",
-        description: input
-      };
-      response.textContent =
-        "⚠️ Detecté una TAREA.\n¿Confirmas ejecutarla? (sí / no)";
-    }
-    else if (text.startsWith("respuesta:")) {
-      pendingAction = {
-        type: "respuesta",
-        description: input
-      };
-      response.textContent =
-        "⚠️ Detecté una MODIFICACIÓN DE RESPUESTA.\n¿Confirmas ejecutarla? (sí / no)";
-    }
-    else if (text.startsWith("accion:")) {
-      pendingAction = {
-        type: "accion",
-        description: input
-      };
-      response.textContent =
-        "⚠️ Detecté una ACCIÓN.\n¿Confirmas ejecutarla? (sí / no)";
-    }
-    else {
-      response.textContent =
-        eliConfig.responses?.default || "ELI activo";
+    // 🧠 Detectar nueva respuesta
+    if (text.startsWith("respuesta:")) {
+      const content = input.substring(10).trim();
+      const parts = content.split("=");
+
+      if (parts.length === 2) {
+        pendingAction = {
+          type: "respuesta",
+          key: parts[0].trim().toLowerCase(),
+          value: parts[1].trim()
+        };
+
+        response.textContent =
+          `⚠️ Nueva respuesta detectada:\n"${pendingAction.key}" → "${pendingAction.value}"\n¿Confirmas? (sí / no)`;
+      } else {
+        response.textContent =
+          "Formato incorrecto.\nEjemplo:\nrespuesta: hola = Hola 👋";
+      }
+
+      inputElement.value = "";
+      return;
     }
 
-    // Guardar memoria
-    if (eliConfig.memory?.enabled) {
-      localStorage.setItem("eli_last_message", input);
-      eliConfig.memory.lastMessage = input;
+    // 🤖 Responder normalmente
+    let reply = eliConfig.responses.default;
+
+    for (const key in eliConfig.responses) {
+      if (text.includes(key)) {
+        reply = eliConfig.responses[key];
+        break;
+      }
     }
 
+    response.textContent = reply;
     inputElement.value = "";
   });
 });
