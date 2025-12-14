@@ -1,10 +1,26 @@
 {
-  "mode": "observador",
-  "allowEvolution": false,
-  "personality": "base",
+  "mode": "manual",
+
+  "modes": {
+    "manual": {
+      "description": "ELI responde solo con frases predefinidas",
+      "allowLearning": false
+    },
+    "observador": {
+      "description": "ELI analiza entradas pero no cambia respuestas",
+      "allowLearning": false
+    },
+    "futuro-autonomo": {
+      "description": "Modo bloqueado para evolución futura",
+      "allowLearning": false,
+      "locked": true
+    }
+  },
+
   "responses": {
-    "hola": "Hola 🤣 estoy siendo controlada desde el celular",
-    "quien eres": "Soy ELI, un asistente en evolución creado por ti.",
-    "default": "Estoy en modo manual. Te escucho 🙂"
+    "hola": "Hola 👋 Soy ELI en modo manual.",
+    "quien eres": "Soy ELI, un sistema en evolución controlada.",
+    "estado": "Estoy funcionando correctamente.",
+    "default": "Te escucho 🙂"
   }
 }
