@@ -1,7 +1,9 @@
 {
   "mode": "manual",
   "responses": {
-    "hola": "Hola 👋 Soy ELI y ahora me configuras desde tu celular.",
-    "quien eres": "Soy ELI. Mi comportamiento cambia sin modificar código.",
-    "ayuda": "Puedes editar eli-config.json desde tu teléfono.",
-    "default": "ELI activo. Esper
+    "hola": "Hola 👋 Soy ELI",
+    "quien eres": "Soy ELI, un asistente en evolución creado por ti.",
+    "ayuda": "Puedo responder desde configuración sin tocar código.",
+    "default": "ELI activo"
+  }
+}
