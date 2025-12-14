@@ -1,5 +1,5 @@
-// ELI v1.2 - núcleo estable con control de estado
-// Evolución segura sin romper el funcionamiento actual
+// ELI v1.2 - núcleo estable con comandos
+// Controlado por eli-config.json
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -13,50 +13,54 @@ document.addEventListener("DOMContentLoaded", async function () {
     return;
   }
 
-  // Configuración por defecto (modo seguro)
+  // Configuración segura por defecto
   let eliConfig = {
     mode: "manual",
     allowEvolution: false,
     responses: {
-      default: "ELI activo, pero sin configuración externa."
+      default: "ELI activo."
     }
   };
 
-  // Cargar eli-config.json
+  // Cargar configuración externa
   try {
     const res = await fetch("./eli-config.json");
     if (res.ok) {
-      const externalConfig = await res.json();
-      eliConfig = { ...eliConfig, ...externalConfig };
-      console.log("ELI config cargada:", eliConfig);
-    } else {
-      console.warn("ELI: no se pudo cargar eli-config.json");
+      eliConfig = await res.json();
+      console.log("Config cargada:", eliConfig);
     }
-  } catch (error) {
-    console.warn("ELI: error leyendo eli-config.json", error);
+  } catch (e) {
+    console.warn("No se pudo cargar eli-config.json");
   }
 
   sendBtn.addEventListener("click", function () {
-    const input = inputElement.value.trim().toLowerCase();
+    const inputRaw = inputElement.value.trim();
+    const input = inputRaw.toLowerCase();
 
     if (input === "") {
       response.textContent = "Escribe algo primero 🙂";
       return;
     }
 
-    // 🔍 Comando de estado
-    if (input === "estado") {
+    // 🔐 COMANDOS ESPECIALES
+    if (input === "/estado") {
       response.textContent =
-        `ELI modo: ${eliConfig.mode} | evolución: ` +
-        (eliConfig.allowEvolution ? "habilitada" : "bloqueada");
+        `Modo: ${eliConfig.mode} | Evolución: ${eliConfig.allowEvolution ? "ACTIVA" : "BLOQUEADA"}`;
       inputElement.value = "";
       return;
     }
 
-    // Respuesta por defecto
+    if (input === "/evolucion") {
+      response.textContent = eliConfig.allowEvolution
+        ? "Evolución permitida 🔓 (lista para futuro)"
+        : "Evolución bloqueada 🔒";
+      inputElement.value = "";
+      return;
+    }
+
+    // 🧠 Respuestas normales
     let reply = eliConfig.responses?.default || "Te escucho 🙂";
 
-    // Coincidencias configurables
     if (eliConfig.responses) {
       for (const key in eliConfig.responses) {
         if (input.includes(key)) {
@@ -71,7 +75,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   });
 });
 
-// Abrir ChatGPT en nueva ventana
+// Abrir ChatGPT
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
