@@ -1,5 +1,10 @@
 {
   "mode": "manual",
   "allowEvolution": false,
-  "lastCommand": "saludar desde el celular"
+  "personality": "base",
+  "responses": {
+    "hola": "Hola 👋 Soy ELI (modo manual). ¿En qué te ayudo?",
+    "quien eres": "Soy ELI, un asistente en evolución creado por ti.",
+    "default": "Estoy en modo manual. Te escucho 🙂"
+  }
 }
