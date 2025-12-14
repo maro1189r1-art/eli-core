@@ -1,8 +1,11 @@
 {
   "mode": "manual",
+  "memory": {
+    "enabled": true,
+    "lastMessage": ""
+  },
   "responses": {
     "hola": "Hola 👋 Soy ELI",
-    "quien eres": "Soy ELI, un asistente en evolución creado por ti.",
     "ayuda": "Puedo responder desde configuración sin tocar código.",
     "default": "ELI activo"
   }
