@@ -3,7 +3,7 @@
   "allowEvolution": false,
   "personality": "base",
   "responses": {
-    "hola": "Hola 👋 Soy ELI (modo manual). ¿En qué te ayudo?",
+    "hola": "Hola 🤣 estoy siendo controlada desde el celular",
     "quien eres": "Soy ELI, un asistente en evolución creado por ti.",
     "default": "Estoy en modo manual. Te escucho 🙂"
   }
