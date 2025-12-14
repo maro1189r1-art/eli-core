@@ -1,5 +1,5 @@
-// ELI v1.4 - núcleo estable con memoria y órdenes de mejora
-// Lee configuración externa, guarda memoria y mejoras pendientes
+// ELI v1.5 - núcleo estable con memoria, órdenes de mejora y control en tiempo real
+// Lee configuración externa, guarda memoria y aplica mejoras
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -78,7 +78,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         );
         reply = "✅ Mejora registrada. La tendré en cuenta.";
       } else {
-        reply = "Escribe la mejora después de 'mejora:'.";
+        reply = "Escribe la mejora después de 'mejora:' (ej: mejora: saludar mejor).";
       }
     }
 
@@ -89,6 +89,19 @@ document.addEventListener("DOMContentLoaded", async function () {
       } else {
         reply =
           "📌 Mejoras pendientes:\n- " + eliImprovements.join("\n- ");
+      }
+    }
+
+    // 🔹 Comando: aplicar mejora (actualiza respuestas)
+    else if (text.startsWith("aplicar mejora:")) {
+      const applyImprovement = input.substring(15).trim();
+      if (applyImprovement) {
+        // Guardar en las respuestas de ELI
+        eliConfig.responses[applyImprovement] = `Respuesta actualizada para "${applyImprovement}"`;
+        localStorage.setItem("eli-config", JSON.stringify(eliConfig)); // Guardar cambios
+        reply = `✅ Mejora aplicada: ${applyImprovement}`;
+      } else {
+        reply = "Escribe el nombre de la mejora después de 'aplicar mejora:'.";
       }
     }
 
