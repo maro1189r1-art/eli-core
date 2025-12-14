@@ -1,25 +1,8 @@
-// ELI v1 - núcleo básico estable
-// Preparado para evolución futura
+// ELI v1.1 - núcleo con configuración externa
+// Lee eli-config.json para comportamiento dinámico
 
-let ELI_CONFIG = {
-  mode: "manual",
-  allowEvolution: false,
-  lastCommand: ""
-};
-
-// Cargar configuración de ELI
-fetch("./eli-config.json")
-  .then(response => response.json())
-  .then(config => {
-    ELI_CONFIG = config;
-    console.log("Configuración de ELI cargada:", ELI_CONFIG);
-  })
-  .catch(error => {
-    console.warn("No se pudo cargar eli-config.json, usando valores por defecto");
-  });
-
-document.addEventListener("DOMContentLoaded", function () {
-  console.log("ELI conectado correctamente");
+document.addEventListener("DOMContentLoaded", async function () {
+  console.log("ELI iniciado");
 
   const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
@@ -30,28 +13,45 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
+  // Configuración por defecto (seguridad)
+  let eliConfig = {
+    mode: "manual",
+    responses: {
+      default: "ELI activo, pero sin configuración externa."
+    }
+  };
+
+  // Intentar cargar eli-config.json
+  try {
+    const res = await fetch("./eli-config.json");
+    if (res.ok) {
+      eliConfig = await res.json();
+      console.log("ELI config cargada:", eliConfig);
+    } else {
+      console.warn("ELI: no se pudo cargar eli-config.json");
+    }
+  } catch (error) {
+    console.warn("ELI: error leyendo eli-config.json", error);
+  }
+
   sendBtn.addEventListener("click", function () {
-    const input = inputElement.value.trim();
+    const input = inputElement.value.trim().toLowerCase();
 
     if (input === "") {
       response.textContent = "Escribe algo primero 🙂";
       return;
     }
 
-    const text = input.toLowerCase();
-    let reply = "";
+    let reply = eliConfig.responses?.default || "Te escucho 🙂";
 
-    if (text.includes("hola")) {
-      reply = "Hola 👋 Soy ELI, ¿en qué te ayudo?";
-    } 
-    else if (text.includes("quien eres")) {
-      reply = "Soy ELI, un asistente en evolución creado por ti.";
-    }
-    else if (text.includes("modo")) {
-      reply = `Estoy en modo: ${ELI_CONFIG.mode}`;
-    }
-    else {
-      reply = "Aún estoy aprendiendo, pero te escucho 🙂";
+    // Buscar coincidencias en responses
+    if (eliConfig.responses) {
+      for (const key in eliConfig.responses) {
+        if (input.includes(key)) {
+          reply = eliConfig.responses[key];
+          break;
+        }
+      }
     }
 
     response.textContent = reply;
@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
-// Abrir ChatGPT en una nueva ventana
+// Abrir ChatGPT en nueva ventana
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
