@@ -1,21 +1,21 @@
-// ELI v2.5 - Núcleo con Acciones Ejecutables
+// ELI v2.6 - Acciones seguras y auditables
 // Prioridad:
-// acciones → reglas → tareas → aprendizajes → respuestas → IA → default
+// comandos → acciones → reglas → aprendizajes → respuestas → IA → default
 
 document.addEventListener("DOMContentLoaded", async function () {
-  console.log("ELI iniciado v2.5");
+  console.log("ELI iniciado v2.6");
 
   const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
   const response = document.getElementById("response");
 
   if (!sendBtn || !inputElement || !response) {
-    console.error("ELI error: elementos del DOM no encontrados");
+    console.error("ELI error: DOM incompleto");
     return;
   }
 
   /* =========================
-     CONFIGURACIÓN BASE
+     CONFIGURACIÓN
   ========================== */
 
   let eliConfig = {
@@ -30,35 +30,34 @@ document.addEventListener("DOMContentLoaded", async function () {
   } catch {}
 
   /* =========================
-     ESTADOS PERSISTENTES
+     ESTADOS
   ========================== */
 
-  const eliActions = JSON.parse(
+  let eliActions = JSON.parse(
     localStorage.getItem("eli_actions") || "{}"
   );
 
-  const eliRules = JSON.parse(
+  let eliRules = JSON.parse(
     localStorage.getItem("eli_rules") || "[]"
   );
 
+  let pendingAction = null;
+
   /* =========================
-     EJECUTOR DE ACCIONES
+     EJECUTOR
   ========================== */
 
   function executeAction(action) {
-    // Acción: abrir url
     if (action.startsWith("abrir ")) {
       const url = action.replace("abrir ", "").trim();
       window.open(url, "_blank");
       return `🌐 Abriendo ${url}`;
     }
 
-    // Acción: mostrar mensaje
     if (action.startsWith("decir ")) {
       return action.replace("decir ", "").trim();
     }
 
-    // Acción desconocida
     return "⚠️ Acción no reconocida.";
   }
 
@@ -77,11 +76,30 @@ document.addEventListener("DOMContentLoaded", async function () {
     let reply = "";
 
     /* =========================
-       1️⃣ CREAR ACCIÓN
+       1️⃣ COMANDOS DE LISTADO
     ========================== */
 
-    // Formato: accion nombre = instruccion
-    if (text.startsWith("accion ")) {
+    if (text === "acciones") {
+      const keys = Object.keys(eliActions);
+      reply =
+        keys.length === 0
+          ? "No hay acciones registradas."
+          : "⚙️ Acciones:\n- " + keys.join("\n- ");
+    }
+
+    else if (text === "reglas") {
+      reply =
+        eliRules.length === 0
+          ? "No hay reglas registradas."
+          : "📐 Reglas:\n- " +
+            eliRules.map(r => `${r.trigger} → ${r.action}`).join("\n- ");
+    }
+
+    /* =========================
+       2️⃣ CREAR ACCIÓN
+    ========================== */
+
+    else if (text.startsWith("accion ")) {
       const content = input.substring(7);
       const parts = content.split("=");
 
@@ -96,46 +114,34 @@ document.addEventListener("DOMContentLoaded", async function () {
             JSON.stringify(eliActions)
           );
           reply = `⚙️ Acción "${name}" registrada.`;
-        } else {
-          reply = "Nombre o acción inválidos.";
-        }
-      } else {
-        reply = "Formato: accion nombre = instruccion";
-      }
+        } else reply = "Nombre o acción inválidos.";
+      } else reply = "Formato: accion nombre = instruccion";
     }
 
     /* =========================
-       2️⃣ EJECUTAR ACCIÓN
+       3️⃣ EJECUCIÓN CON CONFIRMACIÓN
     ========================== */
 
-    if (!reply && eliActions[text]) {
-      reply = executeAction(eliActions[text]);
+    else if (eliActions[text]) {
+      pendingAction = eliActions[text];
+      reply = `❓ ¿Confirmas ejecutar "${text}"? (si / no)`;
     }
 
-    /* =========================
-       3️⃣ REGLAS → ACCIONES
-    ========================== */
+    else if (pendingAction && (text === "si" || text === "sí")) {
+      reply = executeAction(pendingAction);
+      pendingAction = null;
+    }
 
-    if (!reply) {
-      for (const rule of eliRules) {
-        if (text.includes(rule.trigger)) {
-          if (eliActions[rule.action.toLowerCase()]) {
-            reply = executeAction(
-              eliActions[rule.action.toLowerCase()]
-            );
-          } else {
-            reply = rule.action;
-          }
-          break;
-        }
-      }
+    else if (pendingAction && text === "no") {
+      reply = "❌ Acción cancelada.";
+      pendingAction = null;
     }
 
     /* =========================
        4️⃣ RESPUESTAS CONFIG
     ========================== */
 
-    if (!reply && eliConfig.responses) {
+    else if (eliConfig.responses) {
       for (const key in eliConfig.responses) {
         if (key !== "default" && text.includes(key)) {
           reply = eliConfig.responses[key];
@@ -145,15 +151,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     /* =========================
-       5️⃣ IA (FUTURO)
-    ========================== */
-
-    if (!reply && eliConfig.mode === "ia" && eliConfig.ai?.enabled) {
-      reply = "🤖 IA aún no conectada.";
-    }
-
-    /* =========================
-       6️⃣ DEFAULT
+       5️⃣ DEFAULT
     ========================== */
 
     if (!reply) reply = eliConfig.responses?.default || "ELI activo";
