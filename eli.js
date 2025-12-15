@@ -1,4 +1,4 @@
-// ELI v1.9 - Núcleo con aprendizaje controlado
+// ELI v1.9.1 - Aprendizaje controlado corregido
 // Prioridad: comandos → aprendizajes → mejoras → respuestas → IA → default
 
 document.addEventListener("DOMContentLoaded", async function () {
@@ -40,12 +40,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     localStorage.getItem("eli_improvements") || "[]"
   );
 
-  // 🧠 Aprendizajes (NUEVO)
+  // 🧠 Aprendizajes
   let eliLearnings = JSON.parse(
     localStorage.getItem("eli_learnings") || "{}"
   );
 
-  // IA simulada
   async function askAI(message) {
     return "🤖 Respuesta IA (simulada).";
   }
@@ -64,22 +63,29 @@ document.addEventListener("DOMContentLoaded", async function () {
        1️⃣ COMANDOS
     ========================== */
 
-    // Enseñar
-    if (text.startsWith("aprende:")) {
-      // Formato: aprende: pregunta | respuesta
-      const data = input.substring(8).split("|");
-      if (data.length === 2) {
-        const key = data[0].trim().toLowerCase();
-        const value = data[1].trim();
-        eliLearnings[key] = value;
-        localStorage.setItem(
-          "eli_learnings",
-          JSON.stringify(eliLearnings)
-        );
-        reply = `🧠 Aprendido: cuando digas "${key}" responderé eso.`;
+    // 🔹 Aprender (NUEVO FORMATO)
+    if (text.startsWith("aprende ")) {
+      // Formato: aprende pregunta = respuesta
+      const content = input.substring(8);
+      const parts = content.split("=");
+
+      if (parts.length === 2) {
+        const key = parts[0].trim().toLowerCase();
+        const value = parts[1].trim();
+
+        if (key && value) {
+          eliLearnings[key] = value;
+          localStorage.setItem(
+            "eli_learnings",
+            JSON.stringify(eliLearnings)
+          );
+          reply = `🧠 Aprendido. Cuando digas "${key}", responderé eso.`;
+        } else {
+          reply = "La pregunta y la respuesta no pueden estar vacías.";
+        }
       } else {
         reply =
-          "Formato incorrecto. Usa: aprende: pregunta | respuesta";
+          "Formato incorrecto. Usa: aprende pregunta = respuesta";
       }
     }
 
@@ -100,10 +106,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     /* =========================
-       2️⃣ APRENDIZAJES
+       2️⃣ USAR APRENDIZAJES
     ========================== */
 
-    else {
+    if (!reply) {
       for (const key in eliLearnings) {
         if (text.includes(key)) {
           reply = eliLearnings[key];
@@ -124,8 +130,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       )
     ) {
       reply =
-        "Soy ELI 🤖, un asistente que aprende contigo.\n" +
-        "Puedo memorizar, aprender frases y evolucionar paso a paso.";
+        "Soy ELI 🤖, un asistente que aprende contigo y evoluciona paso a paso.";
     }
 
     /* =========================
