@@ -1,9 +1,9 @@
-// ELI v2.1 - Núcleo con Tareas y Reglas Automáticas
+// ELI v2.5 - Núcleo con Acciones Ejecutables
 // Prioridad:
-// control → reglas → tareas → aprendizajes → comandos → respuestas → IA → default
+// acciones → reglas → tareas → aprendizajes → respuestas → IA → default
 
 document.addEventListener("DOMContentLoaded", async function () {
-  console.log("ELI iniciado v2.1");
+  console.log("ELI iniciado v2.5");
 
   const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   let eliConfig = {
     mode: "manual",
-    memory: { enabled: false, lastMessage: "" },
     responses: { default: "ELI activo" },
     ai: { enabled: false }
   };
@@ -34,12 +33,8 @@ document.addEventListener("DOMContentLoaded", async function () {
      ESTADOS PERSISTENTES
   ========================== */
 
-  const eliLearnings = JSON.parse(
-    localStorage.getItem("eli_learnings") || "{}"
-  );
-
-  const eliTasks = JSON.parse(
-    localStorage.getItem("eli_tasks") || "[]"
+  const eliActions = JSON.parse(
+    localStorage.getItem("eli_actions") || "{}"
   );
 
   const eliRules = JSON.parse(
@@ -47,11 +42,24 @@ document.addEventListener("DOMContentLoaded", async function () {
   );
 
   /* =========================
-     IA (FUTURO)
+     EJECUTOR DE ACCIONES
   ========================== */
 
-  async function askAI(message) {
-    return "🤖 IA aún no conectada.";
+  function executeAction(action) {
+    // Acción: abrir url
+    if (action.startsWith("abrir ")) {
+      const url = action.replace("abrir ", "").trim();
+      window.open(url, "_blank");
+      return `🌐 Abriendo ${url}`;
+    }
+
+    // Acción: mostrar mensaje
+    if (action.startsWith("decir ")) {
+      return action.replace("decir ", "").trim();
+    }
+
+    // Acción desconocida
+    return "⚠️ Acción no reconocida.";
   }
 
   /* =========================
@@ -69,92 +77,62 @@ document.addEventListener("DOMContentLoaded", async function () {
     let reply = "";
 
     /* =========================
-       1️⃣ CONTROL
+       1️⃣ CREAR ACCIÓN
     ========================== */
 
-    if (text === "estado") {
-      reply =
-        "🧠 Estado de ELI:\n" +
-        `- Aprendizajes: ${Object.keys(eliLearnings).length}\n` +
-        `- Tareas: ${eliTasks.length}\n` +
-        `- Reglas: ${eliRules.length}`;
-    }
-
-    /* =========================
-       2️⃣ REGLAS (CUANDO X → Y)
-    ========================== */
-
-    // Crear regla
-    else if (text.startsWith("regla:")) {
-      // Formato: regla: cuando diga X => Y
-      const content = input.substring(6).trim();
-      const parts = content.split("=>");
+    // Formato: accion nombre = instruccion
+    if (text.startsWith("accion ")) {
+      const content = input.substring(7);
+      const parts = content.split("=");
 
       if (parts.length === 2) {
-        const trigger = parts[0].replace("cuando diga", "").trim().toLowerCase();
+        const name = parts[0].trim().toLowerCase();
         const action = parts[1].trim();
 
-        if (trigger && action) {
-          eliRules.push({ trigger, action });
-          localStorage.setItem("eli_rules", JSON.stringify(eliRules));
-          reply = `📐 Regla creada: cuando diga "${trigger}" → responder "${action}"`;
+        if (name && action) {
+          eliActions[name] = action;
+          localStorage.setItem(
+            "eli_actions",
+            JSON.stringify(eliActions)
+          );
+          reply = `⚙️ Acción "${name}" registrada.`;
         } else {
-          reply = "La regla no puede estar vacía.";
+          reply = "Nombre o acción inválidos.";
         }
       } else {
-        reply = "Formato: regla: cuando diga X => respuesta";
+        reply = "Formato: accion nombre = instruccion";
       }
     }
 
-    // Ejecutar reglas
+    /* =========================
+       2️⃣ EJECUTAR ACCIÓN
+    ========================== */
+
+    if (!reply && eliActions[text]) {
+      reply = executeAction(eliActions[text]);
+    }
+
+    /* =========================
+       3️⃣ REGLAS → ACCIONES
+    ========================== */
+
     if (!reply) {
       for (const rule of eliRules) {
         if (text.includes(rule.trigger)) {
-          reply = rule.action;
+          if (eliActions[rule.action.toLowerCase()]) {
+            reply = executeAction(
+              eliActions[rule.action.toLowerCase()]
+            );
+          } else {
+            reply = rule.action;
+          }
           break;
         }
       }
     }
 
     /* =========================
-       3️⃣ TAREAS
-    ========================== */
-
-    // Crear tarea
-    if (!reply && text.startsWith("tarea:")) {
-      const task = input.substring(6).trim();
-      if (task) {
-        eliTasks.push(task);
-        localStorage.setItem("eli_tasks", JSON.stringify(eliTasks));
-        reply = "📝 Tarea registrada.";
-      } else {
-        reply = "Escribe la tarea después de 'tarea:'";
-      }
-    }
-
-    // Listar tareas
-    else if (!reply && text === "tareas") {
-      reply =
-        eliTasks.length === 0
-          ? "No hay tareas registradas."
-          : "📋 Tareas:\n- " + eliTasks.join("\n- ");
-    }
-
-    /* =========================
-       4️⃣ APRENDIZAJES
-    ========================== */
-
-    if (!reply) {
-      for (const key in eliLearnings) {
-        if (text.includes(key)) {
-          reply = eliLearnings[key];
-          break;
-        }
-      }
-    }
-
-    /* =========================
-       5️⃣ RESPUESTAS CONFIG
+       4️⃣ RESPUESTAS CONFIG
     ========================== */
 
     if (!reply && eliConfig.responses) {
@@ -167,15 +145,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     /* =========================
-       6️⃣ IA (FUTURO)
+       5️⃣ IA (FUTURO)
     ========================== */
 
     if (!reply && eliConfig.mode === "ia" && eliConfig.ai?.enabled) {
-      reply = await askAI(input);
+      reply = "🤖 IA aún no conectada.";
     }
 
     /* =========================
-       7️⃣ DEFAULT
+       6️⃣ DEFAULT
     ========================== */
 
     if (!reply) reply = eliConfig.responses?.default || "ELI activo";
