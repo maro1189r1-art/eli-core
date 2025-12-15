@@ -1,9 +1,9 @@
-// ELI v2.0 - Núcleo con Modo Control (Autoprogramable)
+// ELI v2.1 - Núcleo con Tareas y Reglas Automáticas
 // Prioridad:
-// control → comandos → aprendizajes → mejoras → respuestas → IA → default
+// control → reglas → tareas → aprendizajes → comandos → respuestas → IA → default
 
 document.addEventListener("DOMContentLoaded", async function () {
-  console.log("ELI iniciado v2.0");
+  console.log("ELI iniciado v2.1");
 
   const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
@@ -19,49 +19,39 @@ document.addEventListener("DOMContentLoaded", async function () {
   ========================== */
 
   let eliConfig = {
-    mode: "manual", // manual | ia
+    mode: "manual",
     memory: { enabled: false, lastMessage: "" },
     responses: { default: "ELI activo" },
     ai: { enabled: false }
   };
 
-  // Cargar configuración externa
   try {
     const res = await fetch("./eli-config.json");
-    if (res.ok) {
-      eliConfig = await res.json();
-      console.log("ELI config cargada:", eliConfig);
-    }
-  } catch {
-    console.warn("ELI: usando configuración por defecto");
-  }
+    if (res.ok) eliConfig = await res.json();
+  } catch {}
 
   /* =========================
      ESTADOS PERSISTENTES
   ========================== */
 
-  // Memoria
-  if (eliConfig.memory?.enabled) {
-    const saved = localStorage.getItem("eli_last_message");
-    if (saved) eliConfig.memory.lastMessage = saved;
-  }
-
-  // Mejoras
-  let eliImprovements = JSON.parse(
-    localStorage.getItem("eli_improvements") || "[]"
-  );
-
-  // Aprendizajes
-  let eliLearnings = JSON.parse(
+  const eliLearnings = JSON.parse(
     localStorage.getItem("eli_learnings") || "{}"
   );
 
+  const eliTasks = JSON.parse(
+    localStorage.getItem("eli_tasks") || "[]"
+  );
+
+  const eliRules = JSON.parse(
+    localStorage.getItem("eli_rules") || "[]"
+  );
+
   /* =========================
-     IA (SIMULADA POR AHORA)
+     IA (FUTURO)
   ========================== */
 
   async function askAI(message) {
-    return "🤖 IA aún no conectada, pero lista para activarse.";
+    return "🤖 IA aún no conectada.";
   }
 
   /* =========================
@@ -79,113 +69,79 @@ document.addEventListener("DOMContentLoaded", async function () {
     let reply = "";
 
     /* =========================
-       1️⃣ MODO CONTROL (NUEVO)
+       1️⃣ CONTROL
     ========================== */
 
-    // Cambiar modo
-    if (text.startsWith("modo:")) {
-      const value = text.replace("modo:", "").trim();
-      if (value === "manual" || value === "ia") {
-        eliConfig.mode = value;
-        reply = `✅ Modo cambiado a: ${value}`;
-      } else {
-        reply = "Modo inválido. Usa: modo: manual | modo: ia";
-      }
-    }
-
-    // Activar / desactivar memoria
-    else if (text.startsWith("memoria:")) {
-      const value = text.replace("memoria:", "").trim();
-      if (value === "on") {
-        eliConfig.memory.enabled = true;
-        reply = "✅ Memoria activada";
-      } else if (value === "off") {
-        eliConfig.memory.enabled = false;
-        localStorage.removeItem("eli_last_message");
-        reply = "🧹 Memoria desactivada y limpiada";
-      } else {
-        reply = "Usa: memoria: on | memoria: off";
-      }
-    }
-
-    // Estado general
-    else if (text === "estado") {
+    if (text === "estado") {
       reply =
         "🧠 Estado de ELI:\n" +
-        `- Modo: ${eliConfig.mode}\n` +
-        `- Memoria: ${eliConfig.memory.enabled ? "activa" : "inactiva"}\n` +
         `- Aprendizajes: ${Object.keys(eliLearnings).length}\n` +
-        `- Mejoras: ${eliImprovements.length}`;
+        `- Tareas: ${eliTasks.length}\n` +
+        `- Reglas: ${eliRules.length}`;
     }
 
     /* =========================
-       2️⃣ COMANDOS
+       2️⃣ REGLAS (CUANDO X → Y)
     ========================== */
 
-    else if (text === "memoria" && eliConfig.memory?.enabled) {
-      reply = eliConfig.memory.lastMessage
-        ? `Recuerdo que dijiste: "${eliConfig.memory.lastMessage}"`
-        : "Aún no tengo memoria.";
-    }
-
-    else if (text.startsWith("mejora:")) {
-      const imp = input.substring(7).trim();
-      if (imp) {
-        eliImprovements.push(imp);
-        localStorage.setItem(
-          "eli_improvements",
-          JSON.stringify(eliImprovements)
-        );
-        reply = "✅ Mejora registrada.";
-      } else {
-        reply = "Escribe la mejora después de 'mejora:'";
-      }
-    }
-
-    else if (text === "mejoras") {
-      reply =
-        eliImprovements.length === 0
-          ? "No hay mejoras pendientes."
-          : "📌 Mejoras:\n- " + eliImprovements.join("\n- ");
-    }
-
-    /* =========================
-       3️⃣ APRENDIZAJE
-    ========================== */
-
-    else if (text.startsWith("aprende ")) {
-      const content = input.substring(8);
-      const parts = content.split("=");
+    // Crear regla
+    else if (text.startsWith("regla:")) {
+      // Formato: regla: cuando diga X => Y
+      const content = input.substring(6).trim();
+      const parts = content.split("=>");
 
       if (parts.length === 2) {
-        const key = parts[0].trim().toLowerCase();
-        const value = parts[1].trim();
+        const trigger = parts[0].replace("cuando diga", "").trim().toLowerCase();
+        const action = parts[1].trim();
 
-        if (key && value) {
-          eliLearnings[key] = value;
-          localStorage.setItem(
-            "eli_learnings",
-            JSON.stringify(eliLearnings)
-          );
-          reply = `🧠 Aprendido. Cuando digas "${key}", responderé eso.`;
+        if (trigger && action) {
+          eliRules.push({ trigger, action });
+          localStorage.setItem("eli_rules", JSON.stringify(eliRules));
+          reply = `📐 Regla creada: cuando diga "${trigger}" → responder "${action}"`;
         } else {
-          reply = "La clave y la respuesta no pueden estar vacías.";
+          reply = "La regla no puede estar vacía.";
         }
       } else {
-        reply = "Formato correcto: aprende pregunta = respuesta";
+        reply = "Formato: regla: cuando diga X => respuesta";
       }
     }
 
-    else if (text === "aprendizajes") {
-      const keys = Object.keys(eliLearnings);
-      reply =
-        keys.length === 0
-          ? "Aún no he aprendido nada."
-          : "📚 Aprendizajes:\n- " + keys.join("\n- ");
+    // Ejecutar reglas
+    if (!reply) {
+      for (const rule of eliRules) {
+        if (text.includes(rule.trigger)) {
+          reply = rule.action;
+          break;
+        }
+      }
     }
 
     /* =========================
-       4️⃣ USAR APRENDIZAJES
+       3️⃣ TAREAS
+    ========================== */
+
+    // Crear tarea
+    if (!reply && text.startsWith("tarea:")) {
+      const task = input.substring(6).trim();
+      if (task) {
+        eliTasks.push(task);
+        localStorage.setItem("eli_tasks", JSON.stringify(eliTasks));
+        reply = "📝 Tarea registrada.";
+      } else {
+        reply = "Escribe la tarea después de 'tarea:'";
+      }
+    }
+
+    // Listar tareas
+    else if (!reply && text === "tareas") {
+      reply =
+        eliTasks.length === 0
+          ? "No hay tareas registradas."
+          : "📋 Tareas:\n- " + eliTasks.join("\n- ");
+    }
+
+    /* =========================
+       4️⃣ APRENDIZAJES
     ========================== */
 
     if (!reply) {
@@ -211,7 +167,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     /* =========================
-       6️⃣ IA
+       6️⃣ IA (FUTURO)
     ========================== */
 
     if (!reply && eliConfig.mode === "ia" && eliConfig.ai?.enabled) {
@@ -224,18 +180,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     if (!reply) reply = eliConfig.responses?.default || "ELI activo";
 
-    // Guardar memoria
-    if (eliConfig.memory?.enabled) {
-      localStorage.setItem("eli_last_message", input);
-      eliConfig.memory.lastMessage = input;
-    }
-
     response.textContent = reply;
     inputElement.value = "";
   });
 });
 
-// Abrir ChatGPT
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
