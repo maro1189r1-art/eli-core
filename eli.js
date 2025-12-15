@@ -1,4 +1,5 @@
-// ELI v1.8 - auto-aprendizaje de respuestas (sin backend)
+// ELI v1.7 - Núcleo estable preparado para IA
+// Prioridad: comandos → mejoras → respuestas → IA → default
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -12,17 +13,24 @@ document.addEventListener("DOMContentLoaded", async function () {
     return;
   }
 
-  // Configuración base
+  // Configuración por defecto segura
   let eliConfig = {
     mode: "manual",
     memory: { enabled: false, lastMessage: "" },
-    responses: { default: "ELI activo" }
+    responses: { default: "ELI activo" },
+    ai: { enabled: false }
   };
 
+  // Cargar configuración externa
   try {
     const res = await fetch("./eli-config.json");
-    if (res.ok) eliConfig = await res.json();
-  } catch {}
+    if (res.ok) {
+      eliConfig = await res.json();
+      console.log("ELI config cargada:", eliConfig);
+    }
+  } catch {
+    console.warn("ELI: usando configuración por defecto");
+  }
 
   // Memoria
   if (eliConfig.memory?.enabled) {
@@ -30,12 +38,17 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (saved) eliConfig.memory.lastMessage = saved;
   }
 
-  // Respuestas aprendidas
-  let learnedResponses = JSON.parse(
-    localStorage.getItem("eli_learned_responses") || "{}"
+  // Mejoras
+  let eliImprovements = JSON.parse(
+    localStorage.getItem("eli_improvements") || "[]"
   );
 
-  sendBtn.addEventListener("click", function () {
+  // 🧠 Cerebro IA (simulado por ahora)
+  async function askAI(message) {
+    return "🤖 IA aún no conectada, pero lista para activarse.";
+  }
+
+  sendBtn.addEventListener("click", async function () {
     const input = inputElement.value.trim();
     if (!input) {
       response.textContent = "Escribe algo primero 🙂";
@@ -45,50 +58,63 @@ document.addEventListener("DOMContentLoaded", async function () {
     const text = input.toLowerCase();
     let reply = "";
 
-    /* 1️⃣ Comando: enseñar respuesta */
-    if (
-      text.startsWith("mejoras cuando diga") &&
-      text.includes("responde")
-    ) {
-      const match = input.match(/cuando diga (.+) responde (.+)/i);
-      if (match) {
-        const trigger = match[1].toLowerCase().trim();
-        const answer = match[2].trim();
+    /* 1️⃣ COMANDOS */
+    if (text === "memoria" && eliConfig.memory?.enabled) {
+      reply = eliConfig.memory.lastMessage
+        ? `Recuerdo que dijiste: "${eliConfig.memory.lastMessage}"`
+        : "Aún no tengo memoria.";
+    }
 
-        learnedResponses[trigger] = answer;
+    else if (text.startsWith("mejora:")) {
+      const imp = input.substring(7).trim();
+      if (imp) {
+        eliImprovements.push(imp);
         localStorage.setItem(
-          "eli_learned_responses",
-          JSON.stringify(learnedResponses)
+          "eli_improvements",
+          JSON.stringify(eliImprovements)
         );
-
-        reply = `✅ Aprendido. Cuando digas "${trigger}", responderé eso.`;
-      } else {
-        reply = "Formato incorrecto. Ejemplo:\nmejoras cuando diga hola responde Hola 👋";
-      }
+        reply = "✅ Mejora registrada.";
+      } else reply = "Escribe la mejora después de 'mejora:'";
     }
 
-    /* 2️⃣ Respuestas aprendidas */
-    else if (learnedResponses[text]) {
-      reply = learnedResponses[text];
+    else if (text === "mejoras") {
+      reply =
+        eliImprovements.length === 0
+          ? "No hay mejoras pendientes."
+          : "📌 Mejoras:\n- " + eliImprovements.join("\n- ");
     }
 
-    /* 3️⃣ Respuestas de config */
+    /* 2️⃣ MEJORAS APLICADAS */
+    else if (
+      text.includes("quien eres") &&
+      eliImprovements.some(m => m.toLowerCase().includes("present"))
+    ) {
+      reply =
+        "Soy ELI 🤖, un asistente digital en evolución.\n" +
+        "Aprendo de configuración, memoria y mejoras.\n" +
+        "Mi objetivo es ayudarte a construir sistemas inteligentes.";
+    }
+
+    /* 3️⃣ RESPUESTAS CONFIG */
     else if (eliConfig.responses) {
-      let found = false;
+      let matched = false;
       for (const key in eliConfig.responses) {
         if (key !== "default" && text.includes(key)) {
           reply = eliConfig.responses[key];
-          found = true;
+          matched = true;
           break;
         }
       }
-      if (!found) reply = eliConfig.responses.default;
+      if (!matched) reply = "";
     }
 
-    /* 4️⃣ Default */
-    else {
-      reply = "ELI activo";
+    /* 4️⃣ IA (si está habilitada) */
+    if (!reply && eliConfig.ai?.enabled) {
+      reply = await askAI(input);
     }
+
+    /* 5️⃣ DEFAULT */
+    if (!reply) reply = eliConfig.responses?.default || "ELI activo";
 
     // Guardar memoria
     if (eliConfig.memory?.enabled) {
