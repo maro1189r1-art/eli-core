@@ -1,5 +1,5 @@
-// ELI v1.6 - núcleo estable con prioridades correctas
-// Prioriza: comandos → mejoras → respuestas configuradas → default
+// ELI v1.7 - núcleo estable con mejoras flexibles
+// Prioridad: comandos → mejoras → respuestas → default
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado");
@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     console.warn("ELI: error leyendo eli-config.json");
   }
 
-  // Cargar memoria guardada
+  // Cargar memoria
   if (eliConfig.memory?.enabled) {
     const savedMemory = localStorage.getItem("eli_last_message");
     if (savedMemory) {
@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
   }
 
-  // Cargar mejoras guardadas
+  // Cargar mejoras
   let eliImprovements = JSON.parse(
     localStorage.getItem("eli_improvements") || "[]"
   );
@@ -61,41 +61,50 @@ document.addEventListener("DOMContentLoaded", async function () {
     let reply = "";
 
     /* =========================
-       1️⃣ COMANDOS EXPLÍCITOS
+       1️⃣ COMANDOS
     ========================== */
 
-    // Ver memoria
     if (text === "memoria" && eliConfig.memory?.enabled) {
       reply = eliConfig.memory.lastMessage
         ? `Recuerdo que dijiste: "${eliConfig.memory.lastMessage}"`
         : "Aún no tengo nada en memoria.";
     }
 
-    // Agregar mejora
-    else if (text.startsWith("mejora:")) {
-      const improvement = input.substring(7).trim();
-      if (improvement) {
+    /* =========================
+       2️⃣ MEJORAS (flexibles)
+    ========================== */
+
+    else if (
+      text.startsWith("mejora") ||
+      text.startsWith("mejoras ") ||
+      text.startsWith("agrega mejora")
+    ) {
+      let improvement = input
+        .replace(/^mejoras?:?/i, "")
+        .replace(/^agrega mejora:?/i, "")
+        .trim();
+
+      if (improvement.length > 0) {
         eliImprovements.push(improvement);
         localStorage.setItem(
           "eli_improvements",
           JSON.stringify(eliImprovements)
         );
-        reply = "✅ Mejora registrada. La tendré en cuenta.";
+        reply = "✅ Mejora registrada correctamente.";
       } else {
-        reply = "Escribe la mejora después de 'mejora:'.";
+        reply = "Escribe la mejora después del comando.";
       }
     }
 
-    // Listar mejoras
     else if (text === "mejoras") {
       reply =
         eliImprovements.length === 0
-          ? "No tengo mejoras pendientes aún."
+          ? "No tengo mejoras registradas."
           : "📌 Mejoras registradas:\n- " + eliImprovements.join("\n- ");
     }
 
     /* =========================
-       2️⃣ APLICAR MEJORAS
+       3️⃣ APLICAR MEJORAS
     ========================== */
 
     else if (
@@ -107,30 +116,30 @@ document.addEventListener("DOMContentLoaded", async function () {
       reply =
         "Soy ELI 🤖, un asistente digital en evolución.\n" +
         "Aprendo mediante memoria, configuración y mejoras que tú defines.\n" +
-        "Mi objetivo es ayudarte a construir y automatizar sistemas inteligentes,\n" +
+        "Mi objetivo es ayudarte a crear y automatizar sistemas inteligentes,\n" +
         "evolucionando paso a paso contigo.";
     }
 
     /* =========================
-       3️⃣ RESPUESTAS CONFIGURADAS
+       4️⃣ RESPUESTAS CONFIGURADAS
     ========================== */
 
     else if (eliConfig.responses) {
-      let matched = false;
+      let found = false;
       for (const key in eliConfig.responses) {
         if (key !== "default" && text.includes(key)) {
           reply = eliConfig.responses[key];
-          matched = true;
+          found = true;
           break;
         }
       }
-      if (!matched) {
+      if (!found) {
         reply = eliConfig.responses.default || "ELI activo";
       }
     }
 
     /* =========================
-       4️⃣ DEFAULT FINAL
+       5️⃣ DEFAULT
     ========================== */
 
     else {
@@ -148,7 +157,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   });
 });
 
-// Abrir ChatGPT en nueva ventana
+// Abrir ChatGPT
 function openChat() {
   window.open("https://chat.openai.com/", "_blank");
 }
