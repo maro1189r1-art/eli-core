@@ -1,13 +1,20 @@
 {
   "mode": "manual",
+
   "memory": {
     "enabled": true,
     "lastMessage": ""
   },
+
   "responses": {
     "hola": "Hola 👋 Soy ELI",
     "ayuda": "Puedo responder desde configuración sin tocar código.",
     "memoria": "Recuerdo tu último mensaje.",
     "default": "ELI activo"
+  },
+
+  "ai": {
+    "enabled": true,
+    "status": "standby"
   }
 }
