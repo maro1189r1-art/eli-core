@@ -1,9 +1,9 @@
-// ELI v3.0 - Autoprogramación controlada
+// ELI v3.1 - Autoprogramación controlada (acciones tolerantes)
 // Prioridad:
-// comandos → sistema → reglas → acciones → aprendizajes → respuestas → IA → default
+// sistema → autoprogramación → reglas → respuestas → default
 
 document.addEventListener("DOMContentLoaded", async function () {
-  console.log("ELI iniciado v3.0");
+  console.log("ELI iniciado v3.1");
 
   const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   ========================== */
 
   let eliConfig = {
-    mode: "manual", // manual | experimental
+    mode: "manual",
     responses: { default: "ELI activo" }
   };
 
@@ -29,13 +29,11 @@ document.addEventListener("DOMContentLoaded", async function () {
   } catch {}
 
   /* =========================
-     ESTADOS PRINCIPALES
+     ESTADOS
   ========================== */
 
-  let eliActions = JSON.parse(localStorage.getItem("eli_actions") || "{}");
   let eliRules = JSON.parse(localStorage.getItem("eli_rules") || "[]");
   let eliVersions = JSON.parse(localStorage.getItem("eli_versions") || "[]");
-
   let pendingConfirmation = null;
 
   /* =========================
@@ -43,14 +41,11 @@ document.addEventListener("DOMContentLoaded", async function () {
   ========================== */
 
   function saveVersion(reason) {
-    const snapshot = {
+    eliVersions.push({
       date: new Date().toISOString(),
       reason,
-      actions: JSON.parse(JSON.stringify(eliActions)),
       rules: JSON.parse(JSON.stringify(eliRules))
-    };
-
-    eliVersions.push(snapshot);
+    });
     localStorage.setItem("eli_versions", JSON.stringify(eliVersions));
   }
 
@@ -58,31 +53,33 @@ document.addEventListener("DOMContentLoaded", async function () {
     const version = eliVersions[index];
     if (!version) return "❌ Versión no encontrada.";
 
-    eliActions = version.actions;
     eliRules = version.rules;
-
-    localStorage.setItem("eli_actions", JSON.stringify(eliActions));
     localStorage.setItem("eli_rules", JSON.stringify(eliRules));
 
-    return `♻️ Restaurado a versión del ${version.date}`;
+    return `♻️ Restaurado a versión ${index}`;
   }
 
   /* =========================
-     EJECUTOR DE ACCIONES
+     EJECUTOR DE ACCIONES (FIX)
   ========================== */
 
   function executeAction(action) {
-    if (action.startsWith("abrir ")) {
-      const url = action.replace("abrir ", "").trim();
+    const clean = action.trim();
+
+    // Abrir URL
+    if (clean.toLowerCase().startsWith("abrir ")) {
+      const url = clean.substring(6).trim();
       window.open(url, "_blank");
       return `🌐 Abriendo ${url}`;
     }
 
-    if (action.startsWith("decir ")) {
-      return action.replace("decir ", "").trim();
+    // Decir explícito
+    if (clean.toLowerCase().startsWith("decir ")) {
+      return clean.substring(6).trim();
     }
 
-    return "⚠️ Acción no reconocida.";
+    // 🔥 FIX: texto libre = decir
+    return clean;
   }
 
   /* =========================
@@ -100,7 +97,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     let reply = "";
 
     /* =========================
-       1️⃣ SISTEMA / CONTROL
+       SISTEMA
     ========================== */
 
     if (text === "modo experimental") {
@@ -116,7 +113,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     else if (text === "versiones") {
       reply =
         eliVersions.length === 0
-          ? "No hay versiones guardadas."
+          ? "No hay versiones."
           : "🕒 Versiones:\n- " +
             eliVersions.map(
               (v, i) => `${i}: ${v.date} (${v.reason})`
@@ -129,55 +126,45 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     /* =========================
-       2️⃣ AUTOPROGRAMACIÓN
+       AUTOPROGRAMACIÓN
     ========================== */
 
     else if (
       eliConfig.mode === "experimental" &&
       text.startsWith("cuando ")
     ) {
-      // Formato:
-      // cuando diga X haz Y
       const match = input.match(/cuando diga (.+) haz (.+)/i);
 
       if (match) {
-        const trigger = match[1].trim().toLowerCase();
-        const action = match[2].trim();
+        pendingConfirmation = {
+          trigger: match[1].trim().toLowerCase(),
+          action: match[2].trim()
+        };
 
-        pendingConfirmation = { trigger, action };
         reply =
-          `⚠️ Voy a crear la regla:\n` +
-          `"${trigger}" → "${action}"\n` +
+          `⚠️ Crear regla:\n` +
+          `"${pendingConfirmation.trigger}" → "${pendingConfirmation.action}"\n` +
           `¿Confirmas? (si / no)`;
       } else {
-        reply =
-          "Formato inválido. Usa: cuando diga X haz Y";
+        reply = "Formato inválido. Usa: cuando diga X haz Y";
       }
     }
 
-    else if (
-      pendingConfirmation &&
-      (text === "si" || text === "sí")
-    ) {
-      saveVersion("Auto-regla creada");
-
+    else if (pendingConfirmation && (text === "si" || text === "sí")) {
+      saveVersion("Regla creada");
       eliRules.push(pendingConfirmation);
-      localStorage.setItem(
-        "eli_rules",
-        JSON.stringify(eliRules)
-      );
-
-      reply = "✅ Regla creada correctamente.";
+      localStorage.setItem("eli_rules", JSON.stringify(eliRules));
       pendingConfirmation = null;
+      reply = "✅ Regla creada correctamente.";
     }
 
     else if (pendingConfirmation && text === "no") {
-      reply = "❌ Creación cancelada.";
       pendingConfirmation = null;
+      reply = "❌ Operación cancelada.";
     }
 
     /* =========================
-       3️⃣ EJECUCIÓN DE REGLAS
+       EJECUCIÓN DE REGLAS
     ========================== */
 
     else {
@@ -190,20 +177,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     /* =========================
-       4️⃣ RESPUESTAS CONFIG
-    ========================== */
-
-    if (!reply && eliConfig.responses) {
-      for (const key in eliConfig.responses) {
-        if (key !== "default" && text.includes(key)) {
-          reply = eliConfig.responses[key];
-          break;
-        }
-      }
-    }
-
-    /* =========================
-       5️⃣ DEFAULT
+       DEFAULT
     ========================== */
 
     if (!reply) reply = eliConfig.responses?.default || "ELI activo";
