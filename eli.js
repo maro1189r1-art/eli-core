@@ -1,8 +1,9 @@
-// ELI v3.2 - Autoprogramación flexible y segura
-// Prioridad: comandos → reglas → tareas → acciones → respuestas → IA → default
+// ELI v3.1 - Autoprogramación controlada (acciones tolerantes)
+// Prioridad:
+// sistema → autoprogramación → reglas → respuestas → default
 
-document.addEventListener("DOMContentLoaded", function () {
-  console.log("ELI iniciado v3.2");
+document.addEventListener("DOMContentLoaded", async function () {
+  console.log("ELI iniciado v3.1");
 
   const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
@@ -19,8 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   let eliConfig = {
     mode: "manual",
-    responses: { default: "ELI activo" },
-    ai: { enabled: false }
+    responses: { default: "ELI activo" }
   };
 
   try {
@@ -29,33 +29,56 @@ document.addEventListener("DOMContentLoaded", function () {
   } catch {}
 
   /* =========================
-     ESTADOS PERSISTENTES
+     ESTADOS
   ========================== */
 
-  let eliActions = JSON.parse(localStorage.getItem("eli_actions") || "{}");
   let eliRules = JSON.parse(localStorage.getItem("eli_rules") || "[]");
-  let pendingAction = null;
+  let eliVersions = JSON.parse(localStorage.getItem("eli_versions") || "[]");
+  let pendingConfirmation = null;
 
   /* =========================
-     EJECUTOR DE ACCIONES DINÁMICAS
+     VERSIONADO
+  ========================== */
+
+  function saveVersion(reason) {
+    eliVersions.push({
+      date: new Date().toISOString(),
+      reason,
+      rules: JSON.parse(JSON.stringify(eliRules))
+    });
+    localStorage.setItem("eli_versions", JSON.stringify(eliVersions));
+  }
+
+  function rollbackVersion(index) {
+    const version = eliVersions[index];
+    if (!version) return "❌ Versión no encontrada.";
+
+    eliRules = version.rules;
+    localStorage.setItem("eli_rules", JSON.stringify(eliRules));
+
+    return `♻️ Restaurado a versión ${index}`;
+  }
+
+  /* =========================
+     EJECUTOR DE ACCIONES (FIX)
   ========================== */
 
   function executeAction(action) {
     const clean = action.trim();
 
-    // Acciones de tipo 'abrir'
+    // Abrir URL
     if (clean.toLowerCase().startsWith("abrir ")) {
-      const url = clean.slice(6).trim();
+      const url = clean.substring(6).trim();
       window.open(url, "_blank");
       return `🌐 Abriendo ${url}`;
     }
 
-    // Acción 'decir'
+    // Decir explícito
     if (clean.toLowerCase().startsWith("decir ")) {
-      return clean.slice(6).trim();
+      return clean.substring(6).trim();
     }
 
-    // Si no es un comando predefinido, devuelve como mensaje
+    // 🔥 FIX: texto libre = decir
     return clean;
   }
 
@@ -74,99 +97,87 @@ document.addEventListener("DOMContentLoaded", function () {
     let reply = "";
 
     /* =========================
-       1️⃣ LISTAR ACCIONES / REGLAS
+       SISTEMA
     ========================== */
 
-    if (text === "acciones") {
-      const keys = Object.keys(eliActions);
+    if (text === "modo experimental") {
+      eliConfig.mode = "experimental";
+      reply = "🧪 Modo experimental activado.";
+    }
+
+    else if (text === "modo seguro") {
+      eliConfig.mode = "manual";
+      reply = "🔒 Modo seguro activado.";
+    }
+
+    else if (text === "versiones") {
       reply =
-        keys.length === 0
-          ? "No hay acciones registradas."
-          : "⚙️ Acciones:\n- " + keys.join("\n- ");
+        eliVersions.length === 0
+          ? "No hay versiones."
+          : "🕒 Versiones:\n- " +
+            eliVersions.map(
+              (v, i) => `${i}: ${v.date} (${v.reason})`
+            ).join("\n- ");
     }
 
-    else if (text === "reglas") {
-      reply =
-        eliRules.length === 0
-          ? "No hay reglas registradas."
-          : "📐 Reglas:\n- " +
-            eliRules.map(r => `${r.trigger} → ${r.action}`).join("\n- ");
-    }
-
-    /* =========================
-       2️⃣ CREAR / EDITAR ACCIÓN
-    ========================== */
-
-    else if (text.startsWith("accion ")) {
-      const content = input.substring(7);
-      const parts = content.split("=");
-
-      if (parts.length === 2) {
-        const name = parts[0].trim().toLowerCase();
-        const action = parts[1].trim();
-
-        if (name && action) {
-          // Actualización de acción
-          eliActions[name] = action;
-          localStorage.setItem("eli_actions", JSON.stringify(eliActions));
-          reply = `⚙️ Acción "${name}" registrada o actualizada.`;
-        } else reply = "Nombre o acción inválidos.";
-      } else reply = "Formato: accion nombre = instruccion";
+    else if (text.startsWith("rollback ")) {
+      const index = parseInt(text.replace("rollback ", ""));
+      reply = rollbackVersion(index);
     }
 
     /* =========================
-       3️⃣ EJECUCIÓN DE ACCIÓN CON CONFIRMACIÓN
+       AUTOPROGRAMACIÓN
     ========================== */
 
-    else if (eliActions[text]) {
-      pendingAction = eliActions[text];
-      reply = `❓ ¿Confirmas ejecutar "${text}"? (si / no)`;
-    }
-
-    else if (pendingAction && (text === "si" || text === "sí")) {
-      reply = executeAction(pendingAction);
-      pendingAction = null;
-    }
-
-    else if (pendingAction && text === "no") {
-      reply = "❌ Acción cancelada.";
-      pendingAction = null;
-    }
-
-    /* =========================
-       4️⃣ CREAR REGLA
-    ========================== */
-
-    else if (text.startsWith("cuando ")) {
+    else if (
+      eliConfig.mode === "experimental" &&
+      text.startsWith("cuando ")
+    ) {
       const match = input.match(/cuando diga (.+) haz (.+)/i);
 
       if (match) {
-        const trigger = match[1].trim().toLowerCase();
-        const action = match[2].trim();
+        pendingConfirmation = {
+          trigger: match[1].trim().toLowerCase(),
+          action: match[2].trim()
+        };
 
-        eliRules.push({ trigger, action });
-        localStorage.setItem("eli_rules", JSON.stringify(eliRules));
-        reply = `✅ Regla creada: "${trigger}" → "${action}"`;
+        reply =
+          `⚠️ Crear regla:\n` +
+          `"${pendingConfirmation.trigger}" → "${pendingConfirmation.action}"\n` +
+          `¿Confirmas? (si / no)`;
       } else {
-        reply = "Formato incorrecto. Usa: cuando diga X haz Y";
+        reply = "Formato inválido. Usa: cuando diga X haz Y";
       }
     }
 
+    else if (pendingConfirmation && (text === "si" || text === "sí")) {
+      saveVersion("Regla creada");
+      eliRules.push(pendingConfirmation);
+      localStorage.setItem("eli_rules", JSON.stringify(eliRules));
+      pendingConfirmation = null;
+      reply = "✅ Regla creada correctamente.";
+    }
+
+    else if (pendingConfirmation && text === "no") {
+      pendingConfirmation = null;
+      reply = "❌ Operación cancelada.";
+    }
+
     /* =========================
-       5️⃣ RESPUESTAS CONFIGURADAS
+       EJECUCIÓN DE REGLAS
     ========================== */
 
-    else if (eliConfig.responses) {
-      for (const key in eliConfig.responses) {
-        if (key !== "default" && text.includes(key)) {
-          reply = eliConfig.responses[key];
+    else {
+      for (const rule of eliRules) {
+        if (text.includes(rule.trigger)) {
+          reply = executeAction(rule.action);
           break;
         }
       }
     }
 
     /* =========================
-       6️⃣ DEFAULT
+       DEFAULT
     ========================== */
 
     if (!reply) reply = eliConfig.responses?.default || "ELI activo";
