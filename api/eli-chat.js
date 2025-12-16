@@ -1,25 +1,28 @@
-// /api/eli-chat.js
-// API puente entre ELI y ChatGPT (Vercel)
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método no permitido" });
+    return res.status(405).json({ reply: "Método no permitido" });
   }
 
   const { message } = req.body;
 
   if (!message) {
-    return res.status(400).json({ error: "Mensaje vacío" });
+    return res.status(400).json({ reply: "Mensaje vacío" });
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(500).json({
+      reply: "❌ Falta la clave OPENAI_API_KEY en Vercel"
+    });
   }
 
   try {
-    const openaiResponse = await fetch(
+    const response = await fetch(
       "https://api.openai.com/v1/chat/completions",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
@@ -27,7 +30,7 @@ export default async function handler(req, res) {
             {
               role: "system",
               content:
-                "Eres ELI, una IA asistente que ayuda de forma clara, directa y en español."
+                "Eres ELI, una IA asistente clara, directa y útil."
             },
             {
               role: "user",
@@ -39,18 +42,18 @@ export default async function handler(req, res) {
       }
     );
 
-    const data = await openaiResponse.json();
+    const data = await response.json();
 
     const reply =
       data?.choices?.[0]?.message?.content ||
-      "No pude generar respuesta.";
+      "No pude generar respuesta";
 
-    res.status(200).json({ reply });
+    return res.status(200).json({ reply });
 
   } catch (error) {
-    console.error("Error ChatGPT:", error);
-    res.status(500).json({
-      reply: "Error al conectar con IA."
+    console.error("ELI API error:", error);
+    return res.status(500).json({
+      reply: "Error al conectar con la IA"
     });
   }
 }
