@@ -1,9 +1,9 @@
-// ELI v3.1 - Autoprogramación controlada (acciones tolerantes)
+// ELI v3.2 - Autoprogramación controlada + IA asistida
 // Prioridad:
-// sistema → autoprogramación → reglas → respuestas → default
+// sistema → autoprogramación → reglas → IA → default
 
 document.addEventListener("DOMContentLoaded", async function () {
-  console.log("ELI iniciado v3.1");
+  console.log("ELI iniciado v3.2");
 
   const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
@@ -66,19 +66,16 @@ document.addEventListener("DOMContentLoaded", async function () {
   function executeAction(action) {
     const clean = action.trim();
 
-    // Abrir URL
     if (clean.toLowerCase().startsWith("abrir ")) {
       const url = clean.substring(6).trim();
       window.open(url, "_blank");
       return `🌐 Abriendo ${url}`;
     }
 
-    // Decir explícito
     if (clean.toLowerCase().startsWith("decir ")) {
       return clean.substring(6).trim();
     }
 
-    // 🔥 FIX: texto libre = decir
     return clean;
   }
 
@@ -86,7 +83,7 @@ document.addEventListener("DOMContentLoaded", async function () {
      EVENTO PRINCIPAL
   ========================== */
 
-  sendBtn.addEventListener("click", function () {
+  sendBtn.addEventListener("click", async function () {
     const input = inputElement.value.trim();
     if (!input) {
       response.textContent = "Escribe algo primero 🙂";
@@ -173,6 +170,27 @@ document.addEventListener("DOMContentLoaded", async function () {
           reply = executeAction(rule.action);
           break;
         }
+      }
+    }
+
+    /* =========================
+       🧠 CONSULTA IA (ChatGPT)
+    ========================== */
+
+    if (!reply) {
+      try {
+        const res = await fetch("/api/eli-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: input })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.reply) reply = data.reply;
+        }
+      } catch (e) {
+        console.warn("ELI: IA no disponible");
       }
     }
 
