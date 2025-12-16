@@ -1,9 +1,9 @@
-// ELI v3.2 - Autoprogramación controlada + IA asistida
+// ELI v3.2.1 - Autoprogramación controlada + IA robusta
 // Prioridad:
 // sistema → autoprogramación → reglas → IA → default
 
 document.addEventListener("DOMContentLoaded", async function () {
-  console.log("ELI iniciado v3.2");
+  console.log("ELI iniciado v3.2.1");
 
   const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   /* =========================
-     EJECUTOR DE ACCIONES (FIX)
+     EJECUTOR DE ACCIONES
   ========================== */
 
   function executeAction(action) {
@@ -174,23 +174,33 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     /* =========================
-       🧠 CONSULTA IA (ChatGPT)
+       🧠 IA (FIX DEFINITIVO)
     ========================== */
 
     if (!reply) {
       try {
-        const res = await fetch("/api/eli-chat", {
+        const res = await fetch(`${window.location.origin}/api/eli-chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ message: input })
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data.reply) reply = data.reply;
+        const data = await res.json();
+
+        if (data.reply) {
+          reply = data.reply;
+        } else if (data.message) {
+          reply = data.message;
+        } else if (data.error) {
+          reply = "⚠️ IA disponible pero devolvió un error.";
+          console.error("ELI IA error:", data.error);
+        } else {
+          reply = "⚠️ La IA no pudo generar respuesta.";
         }
-      } catch (e) {
-        console.warn("ELI: IA no disponible");
+
+      } catch (error) {
+        console.error("ELI IA fallo:", error);
+        reply = "⚠️ No se pudo conectar con la IA.";
       }
     }
 
