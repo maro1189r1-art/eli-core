@@ -1,9 +1,10 @@
-// ELI v3.2.1 - Autoprogramación controlada + IA robusta
+// ELI v3.2 - IA como guía (NO intrusiva)
+// Base estable: v3.1
 // Prioridad:
 // sistema → autoprogramación → reglas → IA → default
 
 document.addEventListener("DOMContentLoaded", async function () {
-  console.log("ELI iniciado v3.2.1");
+  console.log("ELI iniciado v3.2");
 
   const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
@@ -20,7 +21,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   let eliConfig = {
     mode: "manual",
-    responses: { default: "ELI activo" }
+    responses: { default: "ELI activo" },
+    ia: { enabled: true }
   };
 
   try {
@@ -60,7 +62,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   /* =========================
-     EJECUTOR DE ACCIONES
+     EJECUTOR
   ========================== */
 
   function executeAction(action) {
@@ -77,6 +79,26 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     return clean;
+  }
+
+  /* =========================
+     IA PROXY (NUEVO BLOQUE)
+  ========================== */
+
+  async function askIA(message) {
+    try {
+      const res = await fetch("/api/eli-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+
+      const data = await res.json();
+      return data.reply || null;
+    } catch (err) {
+      console.warn("IA no disponible");
+      return null;
+    }
   }
 
   /* =========================
@@ -139,9 +161,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         };
 
         reply =
-          `⚠️ Crear regla:\n` +
-          `"${pendingConfirmation.trigger}" → "${pendingConfirmation.action}"\n` +
-          `¿Confirmas? (si / no)`;
+          `⚠️ Crear regla:\n"${pendingConfirmation.trigger}" → "${pendingConfirmation.action}"\n¿Confirmas? (si / no)`;
       } else {
         reply = "Formato inválido. Usa: cuando diga X haz Y";
       }
@@ -174,34 +194,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     /* =========================
-       🧠 IA (FIX DEFINITIVO)
+       IA (SI NO HUBO RESPUESTA)
     ========================== */
 
-    if (!reply) {
-      try {
-        const res = await fetch(`${window.location.origin}/api/eli-chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: input })
-        });
-
-        const data = await res.json();
-
-        if (data.reply) {
-          reply = data.reply;
-        } else if (data.message) {
-          reply = data.message;
-        } else if (data.error) {
-          reply = "⚠️ IA disponible pero devolvió un error.";
-          console.error("ELI IA error:", data.error);
-        } else {
-          reply = "⚠️ La IA no pudo generar respuesta.";
-        }
-
-      } catch (error) {
-        console.error("ELI IA fallo:", error);
-        reply = "⚠️ No se pudo conectar con la IA.";
-      }
+    if (!reply && eliConfig.ia?.enabled) {
+      reply = await askIA(input);
     }
 
     /* =========================
