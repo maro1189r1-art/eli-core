@@ -1,9 +1,9 @@
-// ELI v3.1 - Autoprogramación controlada (acciones tolerantes)
+// ELI v3.2 - Autoprogramación controlada + Consulta ChatGPT
 // Prioridad:
-// sistema → autoprogramación → reglas → respuestas → default
+// sistema → autoprogramación → reglas → chatgpt → default
 
 document.addEventListener("DOMContentLoaded", async function () {
-  console.log("ELI iniciado v3.1");
+  console.log("ELI iniciado v3.2");
 
   const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   /* =========================
-     EJECUTOR DE ACCIONES
+     EJECUTOR DE ACCIONES (FIX)
   ========================== */
 
   function executeAction(action) {
@@ -76,7 +76,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       return clean.substring(6).trim();
     }
 
-    // Texto libre → decir
     return clean;
   }
 
@@ -159,6 +158,34 @@ document.addEventListener("DOMContentLoaded", async function () {
     else if (pendingConfirmation && text === "no") {
       pendingConfirmation = null;
       reply = "❌ Operación cancelada.";
+    }
+
+    /* =========================
+       CONSULTA A CHATGPT
+       (prefijo: "eli ")
+    ========================== */
+
+    else if (text.startsWith("eli ")) {
+      response.textContent = "🤖 Pensando...";
+
+      fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: input.replace(/^eli /i, "")
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          response.textContent =
+            data.reply || "No se pudo generar respuesta.";
+        })
+        .catch(() => {
+          response.textContent = "❌ Error al conectar con ChatGPT.";
+        });
+
+      inputElement.value = "";
+      return;
     }
 
     /* =========================
