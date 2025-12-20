@@ -1,10 +1,9 @@
-// ELI v3.2 - IA como guía (NO intrusiva)
-// Base estable: v3.1
+// ELI v3.1 - Autoprogramación controlada (acciones tolerantes)
 // Prioridad:
-// sistema → autoprogramación → reglas → IA → default
+// sistema → autoprogramación → reglas → respuestas → default
 
 document.addEventListener("DOMContentLoaded", async function () {
-  console.log("ELI iniciado v3.2");
+  console.log("ELI iniciado v3.1");
 
   const sendBtn = document.getElementById("sendBtn");
   const inputElement = document.getElementById("userInput");
@@ -21,8 +20,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   let eliConfig = {
     mode: "manual",
-    responses: { default: "ELI activo" },
-    ia: { enabled: true }
+    responses: { default: "ELI activo" }
   };
 
   try {
@@ -62,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   /* =========================
-     EJECUTOR
+     EJECUTOR DE ACCIONES
   ========================== */
 
   function executeAction(action) {
@@ -78,34 +76,15 @@ document.addEventListener("DOMContentLoaded", async function () {
       return clean.substring(6).trim();
     }
 
+    // Texto libre → decir
     return clean;
-  }
-
-  /* =========================
-     IA PROXY (NUEVO BLOQUE)
-  ========================== */
-
-  async function askIA(message) {
-    try {
-      const res = await fetch("/api/eli-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
-      });
-
-      const data = await res.json();
-      return data.reply || null;
-    } catch (err) {
-      console.warn("IA no disponible");
-      return null;
-    }
   }
 
   /* =========================
      EVENTO PRINCIPAL
   ========================== */
 
-  sendBtn.addEventListener("click", async function () {
+  sendBtn.addEventListener("click", function () {
     const input = inputElement.value.trim();
     if (!input) {
       response.textContent = "Escribe algo primero 🙂";
@@ -161,7 +140,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         };
 
         reply =
-          `⚠️ Crear regla:\n"${pendingConfirmation.trigger}" → "${pendingConfirmation.action}"\n¿Confirmas? (si / no)`;
+          `⚠️ Crear regla:\n` +
+          `"${pendingConfirmation.trigger}" → "${pendingConfirmation.action}"\n` +
+          `¿Confirmas? (si / no)`;
       } else {
         reply = "Formato inválido. Usa: cuando diga X haz Y";
       }
@@ -191,14 +172,6 @@ document.addEventListener("DOMContentLoaded", async function () {
           break;
         }
       }
-    }
-
-    /* =========================
-       IA (SI NO HUBO RESPUESTA)
-    ========================== */
-
-    if (!reply && eliConfig.ia?.enabled) {
-      reply = await askIA(input);
     }
 
     /* =========================
