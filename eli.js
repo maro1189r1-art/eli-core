@@ -1,6 +1,6 @@
-// ELI v3.2 - Autoprogramación controlada + Consulta ChatGPT
+// ELI v3.2 - Fallback a ChatGPT (SUMADO, NO REEMPLAZA)
 // Prioridad:
-// sistema → autoprogramación → reglas → chatgpt → default
+// sistema → autoprogramación → reglas → ChatGPT → default
 
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("ELI iniciado v3.2");
@@ -60,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   /* =========================
-     EJECUTOR DE ACCIONES (FIX)
+     EJECUTOR DE ACCIONES
   ========================== */
 
   function executeAction(action) {
@@ -80,10 +80,41 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 
   /* =========================
+     BLOQUE CHATGPT (NUEVO)
+     SOLO FALLBACK
+  ========================== */
+
+  async function askChatGPT(message) {
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message
+        })
+      });
+
+      if (!res.ok) {
+        console.warn("ChatGPT no respondió correctamente");
+        return null;
+      }
+
+      const data = await res.json();
+      return data.reply || null;
+
+    } catch (err) {
+      console.error("Error ChatGPT:", err);
+      return null;
+    }
+  }
+
+  /* =========================
      EVENTO PRINCIPAL
   ========================== */
 
-  sendBtn.addEventListener("click", function () {
+  sendBtn.addEventListener("click", async function () {
     const input = inputElement.value.trim();
     if (!input) {
       response.textContent = "Escribe algo primero 🙂";
@@ -161,34 +192,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     /* =========================
-       CONSULTA A CHATGPT
-       (prefijo: "eli ")
-    ========================== */
-
-    else if (text.startsWith("eli ")) {
-      response.textContent = "🤖 Pensando...";
-
-      fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: input.replace(/^eli /i, "")
-        })
-      })
-        .then(res => res.json())
-        .then(data => {
-          response.textContent =
-            data.reply || "No se pudo generar respuesta.";
-        })
-        .catch(() => {
-          response.textContent = "❌ Error al conectar con ChatGPT.";
-        });
-
-      inputElement.value = "";
-      return;
-    }
-
-    /* =========================
        EJECUCIÓN DE REGLAS
     ========================== */
 
@@ -202,6 +205,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     /* =========================
+       CHATGPT FALLBACK
+    ========================== */
+
+    if (!reply) {
+      const aiReply = await askChatGPT(input);
+      if (aiReply) reply = aiReply;
+    }
+
+    /* =========================
        DEFAULT
     ========================== */
 
@@ -211,7 +223,3 @@ document.addEventListener("DOMContentLoaded", async function () {
     inputElement.value = "";
   });
 });
-
-function openChat() {
-  window.open("https://chat.openai.com/", "_blank");
-}
